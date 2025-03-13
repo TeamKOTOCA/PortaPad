@@ -17,11 +17,8 @@
             console.log('WebSocket接続が開きました。');
 
             var allview = document.getElementById("body");
-            var startposition = 0;
-
-            function firstfunc(){
-
-            }
+            var lastX= 0;
+            var lastY= 0;
 
             allview.addEventListener('touchstart', (event) => {
                 const touches = event.changedTouches;
@@ -33,18 +30,22 @@
 
             allview.addEventListener('touchmove', (event) => {
                 const touches = event.changedTouches;
-                try{
-                    document.body.requestFullscreen();
-                    document.body.requestWakeLock();
-                }catch{}
+//                try{
+//                    document.body.requestFullscreen();
+//                    document.body.requestWakeLock();
+//                }catch{}
                 for (let i = 0; i < touches.length; i++) {
                     const touch = touches[i];
-                    var x = touch.clientX;
-                    var y = touch.clientY;
-                    x = Math.floor(x);
-                    y = Math.floor(y);
-                    console.log(`ドラッグ中の座標: (${x}, ${y})`);
-                    ws.send(x + "," +y);
+                    var x = Math.floor(touch.clientX);
+                    var y = Math.floor(touch.clientY);
+                    var xdif = x - lastX;
+                    var ydif = y - lastY;
+                    if(Math.abs(xdif) <= 50 && Math.abs(ydif) <= 50){
+                        ws.send(xdif + "," +ydif);
+                        console.log(`ドラッグ中の座標: (${xdif}, ${ydif})`);
+                    }
+                    lastX = x;
+                    lastY = y;
                 }
             });
 

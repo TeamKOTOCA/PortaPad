@@ -27,7 +27,10 @@ ws.on('connection', (ws, req) => {
                 console.log("clicked");
             }else{
             let points = messageString.split(',');
-            robot.moveMouse(points[0], points[1]);
+            const mousePos = robot.getMousePos();
+            const x = mousePos.x + points[0];
+            const y = mousePos.y + points[1];
+            robot.moveMouse(x,y);
             console.log(messageString);
             }
         })

@@ -3,7 +3,11 @@
         <title>smartpad</title>
     </head>
     <body id="body">
-        
+        <style>
+            #body{
+                background-color: #000;
+            }
+        </style>
     </body>
     <script>
         const ws = new WebSocket('ws://' + window.location.hostname + ":3000");
@@ -15,30 +19,33 @@
             var allview = document.getElementById("body");
             var startposition = 0;
 
+            function firstfunc(){
+
+            }
+
             allview.addEventListener('touchstart', (event) => {
                 const touches = event.changedTouches;
-                for (let i = 0; i < touches.length; i++) {
-                    const touch = touches[i];
-                    var x = touch.clientX; // X座標
-                    var y = touch.clientY; // Y座標
-                    x = Math.floor(x);
-                    y = Math.floor(y);
-                    console.log(`タッチされた座標: (${x}, ${y})`);
-                    ws.send(x + "," +y);
+                console.log(touches);
+                if(touches.length == 1){
+                    ws.send("lc");
                 }
             });
 
             allview.addEventListener('touchmove', (event) => {
-            const touches = event.changedTouches;
-            for (let i = 0; i < touches.length; i++) {
-                const touch = touches[i];
-                var x = touch.clientX;
-                var y = touch.clientY;
-                x = Math.floor(x);
-                y = Math.floor(y);
-                console.log(`ドラッグ中の座標: (${x}, ${y})`);
-                ws.send(x + "," +y);
-            }
+                const touches = event.changedTouches;
+                try{
+                    document.body.requestFullscreen();
+                    document.body.requestWakeLock();
+                }catch{}
+                for (let i = 0; i < touches.length; i++) {
+                    const touch = touches[i];
+                    var x = touch.clientX;
+                    var y = touch.clientY;
+                    x = Math.floor(x);
+                    y = Math.floor(y);
+                    console.log(`ドラッグ中の座標: (${x}, ${y})`);
+                    ws.send(x + "," +y);
+                }
             });
 
             ws.addEventListener('close', (event) => {

@@ -14,6 +14,7 @@ app.use('/', express.static(path.join(__dirname, 'html')));
 // WebSocketの接続処理
 ws.on('connection', (ws, req) => {
     console.log('WebSocket connected');
+
         ws.on('close', () => {
 
             console.log('WebSocket disconnected');
@@ -21,9 +22,14 @@ ws.on('connection', (ws, req) => {
 
         ws.on('message', (message) => {
             const messageString = message.toString();
+            if(messageString == "lc"){
+                robot.mouseClick();
+                console.log("clicked");
+            }else{
             let points = messageString.split(',');
             robot.moveMouse(points[0], points[1]);
             console.log(messageString);
+            }
         })
 
         // 30秒ごとにPingを送る

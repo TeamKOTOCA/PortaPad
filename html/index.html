@@ -1,0 +1,52 @@
+<html>
+    <head>
+        <title>smartpad</title>
+    </head>
+    <body id="body">
+        
+    </body>
+    <script>
+        const ws = new WebSocket('ws://' + window.location.hostname + ":3000");
+        console.log('ws://' + window.location.hostname + ":3000");
+
+        ws.addEventListener('open', (event) => {
+            console.log('WebSocket接続が開きました。');
+
+            var allview = document.getElementById("body");
+            var startposition = 0;
+
+            allview.addEventListener('touchstart', (event) => {
+                const touches = event.changedTouches;
+                for (let i = 0; i < touches.length; i++) {
+                    const touch = touches[i];
+                    var x = touch.clientX; // X座標
+                    var y = touch.clientY; // Y座標
+                    x = Math.floor(x);
+                    y = Math.floor(y);
+                    console.log(`タッチされた座標: (${x}, ${y})`);
+                    ws.send(x + "," +y);
+                }
+            });
+
+            allview.addEventListener('touchmove', (event) => {
+            const touches = event.changedTouches;
+            for (let i = 0; i < touches.length; i++) {
+                const touch = touches[i];
+                var x = touch.clientX;
+                var y = touch.clientY;
+                x = Math.floor(x);
+                y = Math.floor(y);
+                console.log(`ドラッグ中の座標: (${x}, ${y})`);
+                ws.send(x + "," +y);
+            }
+            });
+
+            ws.addEventListener('close', (event) => {
+            console.log('WebSocket接続が閉じられました。');
+            });
+            ws.addEventListener('error', (event) => {
+            console.error('WebSocketエラーが発生しました：', event);
+            });
+        });
+    </script>
+</html>

@@ -1,22 +1,27 @@
 const express = require('express');
 const path = require('path');
 const http = require('http');//httpsサーバー
-const WebSocket = require('ws');//websocket
+const WebSocket = require('ws');
 
 const app = express();
 const server = http.createServer(app); // HTTPサーバー作成
-const wss = new WebSocket.Server({ server }); // WebSocketをHTTPサーバーに統合
+const ws = new WebSocket.Server({ server }); // WebSocketをHTTPサーバーに統合
 
 // /静的ファイルを公開 (http://localhost:3000/)
 app.use('/', express.static(path.join(__dirname, 'html')));
 
 // WebSocketの接続処理
-wss.on('connection', (ws, req) => {
+ws.on('connection', (ws, req) => {
+    console.log('WebSocket connected');
         ws.on('close', () => {
 
             console.log('WebSocket disconnected');
         });
 
+        ws.on('message', (message) => {
+            const messageString = message.toString();
+            console.log(messageString);
+        })
 
         // 30秒ごとにPingを送る
         const pingInterval = setInterval(() => {

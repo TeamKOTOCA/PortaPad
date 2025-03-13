@@ -28,8 +28,8 @@ ws.on('connection', (ws, req) => {
             }else{
                 let points = messageString.split(',');
                 const mousePos = robot.getMousePos();
-                const x = mousePos.x + Number(points[0]);
-                const y = mousePos.y + Number(points[1]);
+                const x = mousePos.x + Number(points[0])*2;
+                const y = mousePos.y + Number(points[1])*2;
                 robot.moveMouse(x,y);
                 console.log(x + "," + y);
             }

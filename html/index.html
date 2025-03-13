@@ -18,7 +18,6 @@
     <script>
         const ws = new WebSocket('ws://' + window.location.hostname + ":3000");
         console.log('ws://' + window.location.hostname + ":3000");
-        var moving = false;
 
         ws.addEventListener('open', (event) => {
             console.log('WebSocket接続が開きました。');
@@ -28,16 +27,12 @@
             var lastY= 0;
 
             allview.addEventListener('touchstart', (event) => {
-                if(moving){
-                    event.stopImmediatePropagation(); // スワイプ中なら touchstart を止める
-                    return;
-                }
                     const touches = event.changedTouches;
                     console.log(touches);
                     if(touches.length == 1){
                         ws.send("lc");
                     }
-            }, true);
+            });
 
             allview.addEventListener('touchend', (event) => {
                 moving = false;

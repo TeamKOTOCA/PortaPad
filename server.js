@@ -2,6 +2,7 @@ const express = require('express');
 const path = require('path');
 const http = require('http');//httpsサーバー
 const WebSocket = require('ws');
+const robot = require('robotjs');
 
 const app = express();
 const server = http.createServer(app); // HTTPサーバー作成
@@ -20,6 +21,8 @@ ws.on('connection', (ws, req) => {
 
         ws.on('message', (message) => {
             const messageString = message.toString();
+            let points = messageString.split(',');
+            robot.moveMouse(points[0], points[1]);
             console.log(messageString);
         })
 

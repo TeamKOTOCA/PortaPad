@@ -53,11 +53,13 @@
 
                 if(Math.abs(xdif) <= 30 && Math.abs(ydif) <= 30){
                     if(touches.length == 1){
-                            ws.send("cursol," + xdif + "," +ydif);
-                            console.log(`ドラッグ中の座標: (${xdif}, ${ydif})`);
+                        ws.send("cursol," + xdif + "," +ydif);
+                        console.log(`ドラッグ中の座標: (${xdif}, ${ydif})`);
                     }else if(touches.length == 2){
-                            ws.send("scroll," + xdif + "," +ydif);
-                            console.log(`ドラッグ中の座標: (${xdif}, ${ydif})`);
+                        xdif = xdif / 6;
+                        ydif = ydif / 6;
+                        ws.send("scroll," + xdif + "," +ydif);
+                        console.log(`ドラッグ中の座標: (${xdif}, ${ydif})`);
                     }
                 }
                     lastX = x;

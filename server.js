@@ -28,14 +28,14 @@ ws.on('connection', (ws, req) => {
                 console.log("clicked");
             }else if(massages[0] == "cursol"){
                 const mousePos = robot.getMousePos();
-                const x = mousePos.x + Number(massages[1])*2;
-                const y = mousePos.y + Number(massages[2])*2;
+                const x = mousePos.x + Number(massages[1])*3;
+                const y = mousePos.y + Number(massages[2])*3;
                 robot.moveMouse(x,y);
                 console.log(x + "," + y);
             }else if(massages[0] == "scroll"){
                 const mousePos = robot.getMousePos();
-                const x = mousePos.x + Number(massages[1])*2;
-                const y = mousePos.y + Number(massages[2])*2;
+                const x = Number(massages[1]);
+                const y = Number(massages[2]);
                 robot.scrollMouse(x,y);
                 console.log(x + "," + y);
             }

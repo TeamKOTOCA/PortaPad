@@ -25,42 +25,43 @@
             var allview = document.getElementById("body");
             var lastX= 0;
             var lastY= 0;
+            var touchtime = 0;
 
             allview.addEventListener('touchstart', (event) => {
-                    const touches = event.changedTouches;
-                    console.log(touches);
-                    if(touches.length == 1){
-                        ws.send("lc");
-                    }
+                touchtime = Date.now();
             });
 
             allview.addEventListener('touchend', (event) => {
-                moving = false;
-                // タッチ終了時の処理
+                console.log(Date.now() - touchtime);
+                if(Date.now() - touchtime <= 100){
+                    ws.send("lefclick");
+                }
             });
 
             allview.addEventListener('touchmove', (event) => {
-                moving = true;
-                const touches = event.changedTouches;
                 try{
                     document.body.requestFullscreen();
                     document.body.requestWakeLock();
                 }catch{}
-                if(touches.length == 1){
-                    const touch = touches[0];
-                    var x = Math.floor(touch.clientX);
-                    var y = Math.floor(touch.clientY);
-                    var xdif = x - lastX;
-                    var ydif = y - lastY;
-                    if(Math.abs(xdif) <= 30 && Math.abs(ydif) <= 30){
-                        ws.send(xdif + "," +ydif);
-                        console.log(`ドラッグ中の座標: (${xdif}, ${ydif})`);
+
+                const touches = event.changedTouches;
+                const touch = touches[0];
+                var x = Math.floor(touch.clientX);
+                var y = Math.floor(touch.clientY);
+                var xdif = x - lastX;
+                var ydif = y - lastY;
+
+                if(Math.abs(xdif) <= 30 && Math.abs(ydif) <= 30){
+                    if(touches.length == 1){
+                            ws.send("cursol," + xdif + "," +ydif);
+                            console.log(`ドラッグ中の座標: (${xdif}, ${ydif})`);
+                    }else if(touches.length == 2){
+                            ws.send("scroll," + xdif + "," +ydif);
+                            console.log(`ドラッグ中の座標: (${xdif}, ${ydif})`);
                     }
+                }
                     lastX = x;
                     lastY = y;
-                }else if(touches.length == 2){
-
-                }
             });
 
             //ping/pongの実装

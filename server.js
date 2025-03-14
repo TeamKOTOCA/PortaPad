@@ -22,15 +22,21 @@ ws.on('connection', (ws, req) => {
 
         ws.on('message', (message) => {
             const messageString = message.toString();
-            if(messageString == "lc"){
+            let massages = messageString.split(',');
+            if(massages[0] == "lefclick"){
                 robot.mouseClick();
                 console.log("clicked");
-            }else{
-                let points = messageString.split(',');
+            }else if(massages[0] == "cursol"){
                 const mousePos = robot.getMousePos();
-                const x = mousePos.x + Number(points[0])*2;
-                const y = mousePos.y + Number(points[1])*2;
+                const x = mousePos.x + Number(massages[1])*2;
+                const y = mousePos.y + Number(massages[2])*2;
                 robot.moveMouse(x,y);
+                console.log(x + "," + y);
+            }else if(massages[0] == "scroll"){
+                const mousePos = robot.getMousePos();
+                const x = mousePos.x + Number(massages[1])*2;
+                const y = mousePos.y + Number(massages[2])*2;
+                robot.scrollMouse(x,y);
                 console.log(x + "," + y);
             }
         })

@@ -26,15 +26,21 @@
             var lastX= 0;
             var lastY= 0;
             var touchtime = 0;
+            var touchfingers = 1;
 
             allview.addEventListener('touchstart', (event) => {
                 touchtime = Date.now();
+                touchfingers = event.touches.length;
             });
 
             allview.addEventListener('touchend', (event) => {
                 console.log(Date.now() - touchtime);
-                if(Date.now() - touchtime <= 100){
-                    ws.send("lefclick");
+                if(Date.now() - touchtime <= 200){
+                    if(touchfingers === 1){
+                        ws.send("lefclick");
+                    }else if(touchfingers === 2){
+                        ws.send("rigclick");
+                    }
                 }
             });
 

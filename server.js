@@ -13,19 +13,28 @@ app.use('/', express.static(path.join(__dirname, 'html')));
 
 // WebSocketの接続処理
 ws.on('connection', (ws, req) => {
-    console.log('WebSocket connected');
+    console.log('WebSocketの接続が行われました');
+    var righttouch = false;
 
         ws.on('close', () => {
 
-            console.log('WebSocket disconnected');
+            console.log('WebSocketのせつぞくがきれました');
         });
 
         ws.on('message', (message) => {
             const messageString = message.toString();
             let massages = messageString.split(',');
+            console.log(massages[0]);
             if(massages[0] == "lefclick"){
                 robot.mouseClick();
                 console.log("clicked");
+                righttouch = false;
+            }else if(massages[0] == "rigclick"){
+                if(righttouch == false){
+                    robot.mouseClick('right');
+                    console.log("Rclicked");
+                }
+                righttouch = true;
             }else if(massages[0] == "cursol"){
                 const mousePos = robot.getMousePos();
                 const x = mousePos.x + Number(massages[1])*3;
@@ -43,9 +52,8 @@ ws.on('connection', (ws, req) => {
 
         // 30秒ごとにPingを送る
         const pingInterval = setInterval(() => {
-            ws.ping(); // クライアントにPingを送信
-        }, 30000); // 30秒おきにPing
-
+            ws.ping();
+        }, 30000);
         // クライアントからPongを受信したとき
         ws.on('pong', () => {});
 });
@@ -65,7 +73,7 @@ const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout
 });
-console.log('終了はqと入力');
+console.log('終了はqまたはｑと入力');
 
 rl.on('line', (input) => {
     if (input.trim() === 'q' || input.trim() === "ｑ") {

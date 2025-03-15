@@ -1,6 +1,7 @@
 <html>
     <head>
         <title>smartpad</title>
+        <link rel="manifest" href="./manifest.json">
         <meta name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no">
     </head>
     <body id="body">
@@ -16,6 +17,12 @@
         </style>
     </body>
     <script>
+        //WAPの実装
+        if (navigator.serviceWorker) {
+            navigator.serviceWorker.register ('/service-worker.js');
+        }
+
+
         const ws = new WebSocket('ws://' + window.location.hostname + ":3000");
         console.log('ws://' + window.location.hostname + ":3000");
 

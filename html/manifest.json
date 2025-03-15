@@ -1,0 +1,14 @@
+{
+    "name": "PortaPad",
+    "short_name": "PortP",
+    "categories": "utilities",
+    "background_color": "#000000",
+    "icons": [{
+        "src": "/pwa_test/img/icon.png",
+        "sizes": "256x256",
+        "type": "image/png"
+      }],
+    "start_url": "/pwa_test/",
+    "scope": "/pwa_test/",
+    "display": "standalone"
+  }

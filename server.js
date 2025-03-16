@@ -47,12 +47,12 @@ ws.on('connection', (ws, req) => {
                 const y = Number(massages[2]);
                 robot.scrollMouse(x,y);
                 console.log(x + "," + y);
-            }else if(message[0] == "drag"){
-                console.log("aaa");
+            }else if(massages[0] == "drag"){
+                const mousePos = robot.getMousePos();
+                const x = mousePos.x + Number(massages[1])*3;
+                const y = mousePos.y + Number(massages[2])*3;
+                robot.moveMouse(x,y);
                 robot.mouseToggle('down', 'left');
-                const x = Number(massages[1]);
-                const y = Number(massages[2]);
-                robot.scrollMouse(x,y);
                 console.log(x + "," + y);
             }else if(message[0] == "end"){
                 robot.mouseToggle('up', 'left');

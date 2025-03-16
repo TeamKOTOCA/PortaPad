@@ -41,6 +41,10 @@
             allview.addEventListener('touchstart', (event) => {
                 touchtime = Date.now();
                 touchfingers = event.touches.length;
+                if (touchfingers === 2) {
+                    isdorugX = event.touches[0].clientX;
+                    isdorugY = event.touches[0].clientY;
+                }
             });
 
             allview.addEventListener('touchend', (event) => {
@@ -72,9 +76,10 @@
                     if(event.touches.length == 1){
                         ws.send("cursol," + xdif + "," +ydif);
                         console.log(`ドラッグ中の座標: (${xdif}, ${ydif})`);
-                    }else if(touches.length == 2){
-                        if(Math.abs(event.touches[0].clientX - isdorugX) <= 5 && Math.abs(event.touches[0].clientX - isdorugY) <= 5){
-                            ws.send(event.touches[0].clientX - isdorugX + "," + Math.abs(event.touches[0].clientX - isdorugY));
+                    }else if(event.touches.length == 2){
+                        if(Math.abs(event.touches[0].clientX - isdorugX) <= 2 && Math.abs(event.touches[0].clientY - isdorugY) <= 2 && Math.abs(event.touches[1].clientX - isdorugX) >= 2 && Math.abs(event.touches[1].clientY - isdorugY) >= 2 ){
+                            x = event.touches[1].clientX - lastX;
+                            y = event.touches[1].clientY - lastY;
                             ws.send("drag," + xdif + "," + ydif);
                             isdorugX = event.touches[0].clientX;
                             isdorugY = event.touches[0].clientY;
@@ -84,6 +89,8 @@
                             ws.send("scroll," + xdif + "," +ydif);
                             console.log(`ドラッグ中の座標: (${xdif}, ${ydif})`);
                         }
+                            isdorugX = event.touches[0].clientX;
+                            isdorugY = event.touches[0].clientY;
                     }
                 }
                     lastX = x;

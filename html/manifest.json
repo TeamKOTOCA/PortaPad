@@ -2,7 +2,7 @@
     "name": "PortaPad",
     "short_name": "PortP",
     "categories": "utilities",
-    "background_color": "#000000",
+    "background_color": "#ffffff",
     "icons": [{
         "src": "/pwa_test/img/icon.png",
         "sizes": "256x256",

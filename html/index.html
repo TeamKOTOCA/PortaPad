@@ -31,6 +31,8 @@
             console.log('WebSocket接続が開きました。');
 
             var allview = document.getElementById("body");
+            var isdorugX;
+            var isdorugY;
             var lastX= 0;
             var lastY= 0;
             var touchtime = 0;
@@ -50,6 +52,7 @@
                         ws.send("rigclick");
                     }
                 }
+                ws.send("end");
             });
 
             allview.addEventListener('touchmove', (event) => {
@@ -65,15 +68,22 @@
                 var xdif = x - lastX;
                 var ydif = y - lastY;
 
-                if(Math.abs(xdif) <= 30 && Math.abs(ydif) <= 30){
-                    if(touches.length == 1){
+                if(Math.abs(xdif) <= 20 && Math.abs(ydif) <= 20){
+                    if(event.touches.length == 1){
                         ws.send("cursol," + xdif + "," +ydif);
                         console.log(`ドラッグ中の座標: (${xdif}, ${ydif})`);
                     }else if(touches.length == 2){
-                        xdif = xdif / 6;
-                        ydif = ydif / 6;
-                        ws.send("scroll," + xdif + "," +ydif);
-                        console.log(`ドラッグ中の座標: (${xdif}, ${ydif})`);
+                        if(Math.abs(event.touches[0].clientX - isdorugX) <= 5 && Math.abs(event.touches[0].clientX - isdorugY) <= 5){
+                            ws.send(event.touches[0].clientX - isdorugX + "," + Math.abs(event.touches[0].clientX - isdorugY));
+                            ws.send("drag," + xdif + "," + ydif);
+                            isdorugX = event.touches[0].clientX;
+                            isdorugY = event.touches[0].clientY;
+                        }else{
+                            xdif = xdif / 6;
+                            ydif = ydif / 6;
+                            ws.send("scroll," + xdif + "," +ydif);
+                            console.log(`ドラッグ中の座標: (${xdif}, ${ydif})`);
+                        }
                     }
                 }
                     lastX = x;

@@ -24,8 +24,8 @@
         }
 
 
-        const ws = new WebSocket('ws://' + window.location.hostname + ":3000");
-        console.log('ws://' + window.location.hostname + ":3000");
+        const ws = new WebSocket('ws://' + window.location.hostname + ":3001");
+        console.log('ws://' + window.location.hostname + ":3001");
 
         ws.addEventListener('open', (event) => {
             console.log('WebSocket接続が開きました。');
@@ -96,11 +96,7 @@
                     lastX = x;
                     lastY = y;
             });
-
-            //ping/pongの実装
-            ws.onping = (event) => {
-                ws.pong(); // サーバーからのPingに対してPongを返す
-            };
+ 
             ws.addEventListener('close', (event) => {
             console.log('WebSocket接続が閉じられました。');
             });

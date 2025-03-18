@@ -1,6 +1,5 @@
 // Denoの必要なモジュールをインポート
-import { serve } from "https://deno.land/std/http/server.ts";
-import { serveDir } from "https://deno.land/std/http/file_server.ts";
+import { serveDir } from "https://deno.land/std@0.224.0/http/file_server.ts";
 import { WebSocketServer } from "https://deno.land/x/websocket@v0.1.4/mod.ts";
 
 // WebSocketサーバーを作成
@@ -8,7 +7,7 @@ const wss = new WebSocketServer(3001);
 
 // "apps"ディレクトリから静的ファイルを提供する
 async function handleHttpRequest(req){
-  const url = new URL(req.url);
+  const _url = new URL(req.url);
   
   // "apps"ディレクトリから静的ファイルを提供
   return await serveDir(req, {
@@ -18,7 +17,7 @@ async function handleHttpRequest(req){
 }
 
 // HTTPサーバーを起動
-const httpServer = serve(handleHttpRequest, { port: 3000 });
+const _httpServer = Deno.serve({ port: 3000 }, handleHttpRequest);
 console.log(`サーバーが起動しました: http://localhost:3000`);
 
 // WebSocket接続を処理
@@ -35,6 +34,8 @@ wss.on("connection", (ws) => {
     const messageString = typeof message === "string" ? message : new TextDecoder().decode(message);
     const massages = messageString.split(",");
     console.log(massages[0]);
+    const x = 123;
+    const y = 345;
     
     if (massages[0] == "lefclick") {
 //      robotjs.mouseClick();
@@ -47,21 +48,21 @@ wss.on("connection", (ws) => {
       }
       righttouch = true;
     } else if (massages[0] == "cursol") {
-      const mousePos = robotjs.getMousePos();
-      const x = mousePos.x + Number(massages[1]) * 3;
-      const y = mousePos.y + Number(massages[2]) * 3;
+//      const mousePos = robotjs.getMousePos();
+//      const x = mousePos.x + Number(massages[1]) * 3;
+//      const y = mousePos.y + Number(massages[2]) * 3;
 //      robotjs.moveMouse(x, y);
       console.log(x + "," + y);
     } else if (massages[0] == "scroll") {
-      const mousePos = robotjs.getMousePos();
-      const x = Number(massages[1]);
-      const y = Number(massages[2]);
+//      const mousePos = robotjs.getMousePos();
+//      const x = Number(massages[1]);
+//      const y = Number(massages[2]);
 //      robotjs.scrollMouse(x, y);
       console.log(x + "," + y);
     } else if (massages[0] == "drag") {
-      const mousePos = robotjs.getMousePos();
-      const x = mousePos.x + Number(massages[1]) * 3;
-      const y = mousePos.y + Number(massages[2]) * 3;
+//      const mousePos = robotjs.getMousePos();
+//      const x = mousePos.x + Number(massages[1]) * 3;
+//      const y = mousePos.y + Number(massages[2]) * 3;
 //      robotjs.moveMouse(x, y);
 //      robotjs.mouseToggle("down", "left");
       console.log(x + "," + y);
@@ -73,7 +74,7 @@ wss.on("connection", (ws) => {
   // 30秒ごとにPingを送信
   const pingInterval = setInterval(() => {
     ws.ping();
-  }, 3000);
+  }, 30000);
 
   ws.on("pong", () => {});
 });
@@ -88,6 +89,7 @@ const readLines = async () => {
     const input = textDecoder.decode(line).trim();
     if (input === "q" || input === "ｑ") {
       console.log("終了します。");
+      httpServer.shutdown();
       Deno.exit(0);
     }
   }

@@ -4,7 +4,7 @@ import { serveDir } from "https://deno.land/std/http/file_server.ts";
 import { WebSocketServer } from "https://deno.land/x/websocket@v0.1.4/mod.ts";
 
 // WebSocketサーバーを作成
-const wss = new WebSocketServer(3000);
+const wss = new WebSocketServer(3001);
 
 // "apps"ディレクトリから静的ファイルを提供する
 async function handleHttpRequest(req){
@@ -12,7 +12,7 @@ async function handleHttpRequest(req){
   
   // "apps"ディレクトリから静的ファイルを提供
   return await serveDir(req, {
-    fsRoot: "apps",
+    fsRoot: "html",
     urlRoot: "",
   });
 }
@@ -28,6 +28,7 @@ wss.on("connection", (ws) => {
 
   ws.on("close", () => {
     console.log("WebSocketのせつぞくがきれました");
+    clearInterval(pingInterval); // ping送信処理を停止
   });
 
   ws.on("message", (message) => {
@@ -72,7 +73,7 @@ wss.on("connection", (ws) => {
   // 30秒ごとにPingを送信
   const pingInterval = setInterval(() => {
     ws.ping();
-  }, 30000);
+  }, 3000);
 
   ws.on("pong", () => {});
 });

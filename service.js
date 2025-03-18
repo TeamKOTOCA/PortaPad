@@ -31,43 +31,47 @@ wss.on("connection", (ws) => {
   });
 
   ws.on("message", (message) => {
-    const messageString = typeof message === "string" ? message : new TextDecoder().decode(message);
-    const massages = messageString.split(",");
-    console.log(massages[0]);
-    const x = 123;
-    const y = 345;
-    
-    if (massages[0] == "lefclick") {
-//      robotjs.mouseClick();
-      console.log("clicked");
-      righttouch = false;
-    } else if (massages[0] == "rigclick") {
-      if (righttouch == false) {
-//        robotjs.mouseClick("right");
-        console.log("Rclicked");
+    try{
+      const messageString = typeof message === "string" ? message : new TextDecoder().decode(message);
+      const massages = messageString.split(",");
+      console.log(massages[0]);
+      const x = 123;
+      const y = 345;
+      
+      if (massages[0] == "lefclick") {
+  //      robotjs.mouseClick();
+        console.log("clicked");
+        righttouch = false;
+      } else if (massages[0] == "rigclick") {
+        if (righttouch == false) {
+  //        robotjs.mouseClick("right");
+          console.log("Rclicked");
+        }
+        righttouch = true;
+      } else if (massages[0] == "cursol") {
+  //      const mousePos = robotjs.getMousePos();
+  //      const x = mousePos.x + Number(massages[1]) * 3;
+  //      const y = mousePos.y + Number(massages[2]) * 3;
+  //      robotjs.moveMouse(x, y);
+        console.log(x + "," + y);
+      } else if (massages[0] == "scroll") {
+  //      const mousePos = robotjs.getMousePos();
+  //      const x = Number(massages[1]);
+  //      const y = Number(massages[2]);
+  //      robotjs.scrollMouse(x, y);
+        console.log(x + "," + y);
+      } else if (massages[0] == "drag") {
+  //      const mousePos = robotjs.getMousePos();
+  //      const x = mousePos.x + Number(massages[1]) * 3;
+  //      const y = mousePos.y + Number(massages[2]) * 3;
+  //      robotjs.moveMouse(x, y);
+  //      robotjs.mouseToggle("down", "left");
+        console.log(x + "," + y);
+      } else if (massages[0] == "end") {
+  //      robotjs.mouseToggle("up", "left");
       }
-      righttouch = true;
-    } else if (massages[0] == "cursol") {
-//      const mousePos = robotjs.getMousePos();
-//      const x = mousePos.x + Number(massages[1]) * 3;
-//      const y = mousePos.y + Number(massages[2]) * 3;
-//      robotjs.moveMouse(x, y);
-      console.log(x + "," + y);
-    } else if (massages[0] == "scroll") {
-//      const mousePos = robotjs.getMousePos();
-//      const x = Number(massages[1]);
-//      const y = Number(massages[2]);
-//      robotjs.scrollMouse(x, y);
-      console.log(x + "," + y);
-    } else if (massages[0] == "drag") {
-//      const mousePos = robotjs.getMousePos();
-//      const x = mousePos.x + Number(massages[1]) * 3;
-//      const y = mousePos.y + Number(massages[2]) * 3;
-//      robotjs.moveMouse(x, y);
-//      robotjs.mouseToggle("down", "left");
-      console.log(x + "," + y);
-    } else if (massages[0] == "end") {
-//      robotjs.mouseToggle("up", "left");
+    }catch(e){
+      console.error(e);
     }
   });
 

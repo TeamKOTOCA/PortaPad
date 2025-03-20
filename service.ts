@@ -28,7 +28,6 @@ wss.on("connection", (ws) => {
 
   ws.on("close", () => {
     console.log("WebSocketのせつぞくがきれました");
-    clearInterval(pingInterval); // ping送信処理を停止
   });
 
   ws.on("message", (message) => {

@@ -63,15 +63,19 @@ wss.on("connection", (ws) => {
   //      robotjs.scrollMouse(x, y);
   //      console.log(x + "," + y);
       } else if (massages[0] == "drag") {
-  //      const mousePos = robotjs.getMousePos();
-  //      const x = mousePos.x + Number(massages[1]) * 3;
-  //      const y = mousePos.y + Number(massages[2]) * 3;
-  //      robotjs.moveMouse(x, y);
-  //      robotjs.mouseToggle("down", "left");
-  //      console.log(x + "," + y);
+        autoOSDeno.ChangeMouse(1,1);
+        let mousePos: number[]| undefined  = [0, 0];
+        mousePos = autoOSDeno.GetMouse();
+        console.log(mousePos);
+        if (mousePos != null && massages.length >= 1) {
+          const x = mousePos[0] + Number(massages[1]) * 3;
+          const y = mousePos[1] + Number(massages[2]) * 3;
+          console.log(x + "," + y);
+          autoOSDeno.MoveMouse(x, y);
+        }
       } else if (massages[0] == "end") {
-        autoOSDeno.ChangeMouse(1);
-        autoOSDeno.ChangeMouse(3);
+        autoOSDeno.ChangeMouse(1,0);
+        autoOSDeno.ChangeMouse(3,0);
       }
     }catch(e){
       console.error(e);

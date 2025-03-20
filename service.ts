@@ -57,11 +57,11 @@ wss.on("connection", (ws) => {
           autoOSDeno.MoveMouse(x, y);
         }
       } else if (massages[0] == "scroll") {
-  //      const mousePos = robotjs.getMousePos();
-  //      const x = Number(massages[1]);
-  //      const y = Number(massages[2]);
-  //      robotjs.scrollMouse(x, y);
-  //      console.log(x + "," + y);
+        if(massages[1] == "up"){
+          autoOSDeno.ClickMouse(4);
+        }else{
+          autoOSDeno.ClickMouse(5);
+        }
       } else if (massages[0] == "drag") {
         autoOSDeno.ChangeMouse(1,1);
         let mousePos: number[]| undefined  = [0, 0];

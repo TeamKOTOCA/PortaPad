@@ -33,6 +33,7 @@
             var allview = document.getElementById("body");
             var isdorugX;
             var isdorugY;
+            var isscroll = false;
             var lastX= 0;
             var lastY= 0;
             var touchtime = 0;
@@ -57,6 +58,7 @@
                     }
                 }
                 ws.send("end");
+                isscroll = false;
             });
 
             allview.addEventListener('touchmove', (event) => {
@@ -73,21 +75,27 @@
                 var ydif = y - lastY;
 
                 if(Math.abs(xdif) <= 20 && Math.abs(ydif) <= 20){
+                    //カーソル移動
                     if(event.touches.length == 1){
                         ws.send("cursol," + xdif + "," +ydif);
-                        console.log(`ドラッグ中の座標: (${xdif}, ${ydif})`);
                     }else if(event.touches.length == 2){
-                        if(Math.abs(event.touches[0].clientX - isdorugX) <= 2 && Math.abs(event.touches[0].clientY - isdorugY) <= 2 && Math.abs(event.touches[1].clientX - isdorugX) >= 2 && Math.abs(event.touches[1].clientY - isdorugY) >= 2 ){
+                        if(!isscroll ||Math.abs(event.touches[0].clientX - isdorugX) <= 2 && Math.abs(event.touches[0].clientY - isdorugY) <= 2 && Math.abs(event.touches[1].clientX - isdorugX) >= 2 && Math.abs(event.touches[1].clientY - isdorugY) >= 2 ){
+                            //どらっぐ
                             x = event.touches[1].clientX - lastX;
                             y = event.touches[1].clientY - lastY;
                             ws.send("drag," + xdif + "," + ydif);
                             isdorugX = event.touches[0].clientX;
                             isdorugY = event.touches[0].clientY;
                         }else{
-                            xdif = xdif / 6;
-                            ydif = ydif / 6;
-                            ws.send("scroll," + xdif + "," +ydif);
-                            console.log(`ドラッグ中の座標: (${xdif}, ${ydif})`);
+                            //スクロール
+//                            xdif = xdif / 6;
+                            ydif = ydif / 10;
+                            isscroll = true;
+                            if(ydif > 0){
+                                ws.send("scroll,up");
+                            }else{
+                                ws.send("scroll,down");
+                            }
                         }
                             isdorugX = event.touches[0].clientX;
                             isdorugY = event.touches[0].clientY;

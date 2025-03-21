@@ -79,7 +79,7 @@
                     if(event.touches.length == 1){
                         ws.send("cursol," + xdif + "," +ydif);
                     }else if(event.touches.length == 2){
-                        if(!isscroll ||Math.abs(event.touches[0].clientX - isdorugX) <= 2 && Math.abs(event.touches[0].clientY - isdorugY) <= 2 && Math.abs(event.touches[1].clientX - isdorugX) >= 2 && Math.abs(event.touches[1].clientY - isdorugY) >= 2 ){
+                        if(!isscroll && Math.abs(event.touches[0].clientX - isdorugX) <= 2 && Math.abs(event.touches[0].clientY - isdorugY) <= 2 && Math.abs(event.touches[1].clientX - isdorugX) >= 2 && Math.abs(event.touches[1].clientY - isdorugY) >= 2 ){
                             //どらっぐ
                             x = event.touches[1].clientX - lastX;
                             y = event.touches[1].clientY - lastY;

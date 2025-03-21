@@ -57,7 +57,9 @@
                         ws.send("rigclick");
                     }
                 }
-                ws.send("end");
+                if(event.touches.length === 0){
+                    ws.send("end");
+                }
                 isscroll = false;
             });
 

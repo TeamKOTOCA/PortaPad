@@ -25,6 +25,7 @@ console.log(`サーバーが起動しました: http://localhost:3000`);
 wss.on("connection", (ws) => {
   console.log("WebSocketの接続が行われました");
   let righttouch = false;
+  let scrolled = 0;
 
   ws.on("close", () => {
     console.log("WebSocketのせつぞくがきれました");
@@ -57,11 +58,15 @@ wss.on("connection", (ws) => {
           autoOSDeno.MoveMouse(x, y);
         }
       } else if (massages[0] == "scroll") {
-        if(massages[1] == "up"){
-          autoOSDeno.ClickMouse(4);
-        }else{
-          autoOSDeno.ClickMouse(5);
+        if (scrolled >= 3) {
+          if(massages[1] == "up"){
+            autoOSDeno.ClickMouse(4);
+          }else{
+            autoOSDeno.ClickMouse(5);
+          }
+          scrolled = 0;
         }
+        scrolled++;
       } else if (massages[0] == "drag") {
         autoOSDeno.ChangeMouse(1,1);
         let mousePos: number[]| undefined  = [0, 0];

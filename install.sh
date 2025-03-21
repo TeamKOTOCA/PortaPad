@@ -40,6 +40,8 @@ else
     exit 1
 fi
 
+chmod +x /opt/portapad/service
+
 sudo systemctl enable portapad.service
 
 sudo systemctl start portapad.service

@@ -52,8 +52,8 @@ wss.on("connection", (ws) => {
           mousePos = autoOSDeno.GetMouse();
           console.log(mousePos);
         if (mousePos != null && massages.length >= 1) {
-          const x = mousePos[0] + Number(massages[1]) * 3;
-          const y = mousePos[1] + Number(massages[2]) * 3;
+          const x = mousePos[0] + Number(massages[1]) * 4;
+          const y = mousePos[1] + Number(massages[2]) * 4;
           console.log(x + "," + y);
           autoOSDeno.MoveMouse(x, y);
         }
@@ -73,8 +73,8 @@ wss.on("connection", (ws) => {
         mousePos = autoOSDeno.GetMouse();
         console.log(mousePos);
         if (mousePos != null && massages.length >= 1) {
-          const x = mousePos[0] + Number(massages[1]) * 3;
-          const y = mousePos[1] + Number(massages[2]) * 3;
+          const x = mousePos[0] + Number(massages[1]) * 4;
+          const y = mousePos[1] + Number(massages[2]) * 4;
           console.log(x + "," + y);
           autoOSDeno.MoveMouse(x, y);
         }

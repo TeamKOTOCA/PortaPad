@@ -1,25 +1,89 @@
 // Denoの必要なモジュールをインポート
-import { serveDir } from "https://deno.land/std@0.224.0/http/file_server.ts";
 import { WebSocketServer } from "https://deno.land/x/websocket@v0.1.4/mod.ts";
 import * as autoOSDeno from "../autoOSDeno/mouse.ts";
+import { serve } from "https://deno.land/std@0.156.0/http/server.ts";
 
-// WebSocketサーバーを作成
-const wss = new WebSocketServer(3001);
+let righttouch = false;
+let scrolled = 0;
 
-// "apps"ディレクトリから静的ファイルを提供する
-async function handleHttpRequest(req: Request){
-  const _url = new URL(req.url);
-  
-  // "apps"ディレクトリから静的ファイルを提供
-  return await serveDir(req, {
-    fsRoot: "html",
-    urlRoot: "",
-  });
+serve((req) => {
+  // `Deno.upgradeWebSocket(req)`でHTTP接続をWebSocket用に切り替え
+  const { response, socket } = Deno.upgradeWebSocket(req);
+
+      // 接続を開いた時の処理
+      socket.addEventListener("open", () => console.log("open!"));
+      // メッセージを受信した時の処理
+      socket.addEventListener("message", (message) => getmessage(message));
+      // エラー発生時の処理
+      socket.addEventListener("error", () => console.log("error!"));
+      // 接続を閉じた時の処理
+      socket.addEventListener("close", () => console.log("close!"));
+      // メッセージを送信する
+      socket.send("message");
+      // 接続を閉じる
+      socket.close();
+
+
+  // レスポンスを返してWebSocket通信スタート
+  return response;
+});
+
+
+function getmessage(message: string|Uint8Array){
+  try{
+    const messageString = typeof message === "string" ? message : new TextDecoder().decode(message);
+    const massages = messageString.split(",");
+    console.log(massages[0]);
+    
+    if (massages[0] == "lefclick") {
+      autoOSDeno.ClickMouse(1);
+      console.log("clicked");
+      righttouch = false;
+    } else if (massages[0] == "rigclick") {
+      if (righttouch == false) {
+        autoOSDeno.ClickMouse(3);
+        console.log("Rclicked");
+      }
+      righttouch = true;
+    } else if (massages[0] == "cursol") {
+      let mousePos: number[]| undefined  = [0, 0];
+        mousePos = autoOSDeno.GetMouse();
+        console.log(mousePos);
+      if (mousePos != null && massages.length >= 1) {
+        const x = mousePos[0] + Number(massages[1]) * 4;
+        const y = mousePos[1] + Number(massages[2]) * 4;
+        console.log(x + "," + y);
+        autoOSDeno.MoveMouse(x, y);
+      }
+    } else if (massages[0] == "scroll") {
+      if (scrolled >= 3) {
+        if(massages[1] == "up"){
+          autoOSDeno.ClickMouse(4);
+        }else{
+          autoOSDeno.ClickMouse(5);
+        }
+        scrolled = 0;
+      }
+      scrolled++;
+    } else if (massages[0] == "drag") {
+      autoOSDeno.ChangeMouse(1,1);
+      let mousePos: number[]| undefined  = [0, 0];
+      mousePos = autoOSDeno.GetMouse();
+      console.log(mousePos);
+      if (mousePos != null && massages.length >= 1) {
+        const x = mousePos[0] + Number(massages[1]) * 4;
+        const y = mousePos[1] + Number(massages[2]) * 4;
+        console.log(x + "," + y);
+        autoOSDeno.MoveMouse(x, y);
+      }
+    } else if (massages[0] == "end") {
+      autoOSDeno.ChangeMouse(1,0);
+      autoOSDeno.ChangeMouse(3,0);
+    }
+  }catch(e){
+    console.error(e);
+  }
 }
-
-// HTTPサーバーを起動
-const httpServer = Deno.serve({ port: 3000 }, handleHttpRequest);
-console.log(`サーバーが起動しました: http://localhost:3000`);
 
 // WebSocket接続を処理
 wss.on("connection", (ws) => {
@@ -99,7 +163,6 @@ const readLines = async () => {
     const input = textDecoder.decode(line).trim();
     if (input === "q" || input === "ｑ") {
       console.log("終了します。");
-      httpServer.shutdown();
       Deno.exit(0);
     }
   }

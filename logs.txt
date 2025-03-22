@@ -3,3 +3,4 @@
 WebSocketの接続が行われました
 WebSocketのせつぞくがきれました
 WebSocketの接続が行われました
+終了します。

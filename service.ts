@@ -1,13 +1,14 @@
 // Denoの必要なモジュールをインポート
 import * as autoOSDeno from "../autoOSDeno/mouse.ts";
-import { serve } from "https://deno.land/std@0.156.0/http/server.ts";
+import { serveTls } from "https://deno.land/std@0.156.0/http/server.ts";
 
 let righttouch = false;
 let scrolled = 0;
 
 const certFile = "./public.crt"; // 証明書のパス
 const keyFile = "./private.key"; // 秘密鍵のパス
-serve((req) => {
+const port = 8000; // ポート番号
+serveTls((req) => {
   // `Deno.upgradeWebSocket(req)`でHTTP接続をWebSocket用に切り替え
   const { response, socket } = Deno.upgradeWebSocket(req);
 
@@ -22,7 +23,7 @@ serve((req) => {
 
   // レスポンスを返してWebSocket通信スタート
   return response;
-}), { certFile, keyFile, port: 8000 };
+}, { certFile, keyFile, port });
 
 
 function getmessage(message: MessageEvent) {

@@ -1,5 +1,5 @@
 // Denoの必要なモジュールをインポート
-import * as autoOSDeno from "../autoOSDeno/mouse.ts";
+import * as autoOSDeno from "../../autoOSDeno/mouse.ts";
 import { serveTls } from "https://deno.land/std@0.156.0/http/server.ts";
 
 let righttouch = false;

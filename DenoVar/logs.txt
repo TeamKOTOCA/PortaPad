@@ -1,6 +1,0 @@
-サーバーが起動しました: http://localhost:3000
-終了はqまたはｑと入力
-WebSocketの接続が行われました
-WebSocketのせつぞくがきれました
-WebSocketの接続が行われました
-終了します。

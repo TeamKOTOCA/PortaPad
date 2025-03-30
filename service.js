@@ -1,5 +1,6 @@
-const inputter = require("./modules/build/Release/x11");
+const robot = require('robotjs');
 const readline = require('readline');
+const robot = require('robotjs');
 
 let righttouch = false;
 let scrolled = 0;
@@ -11,49 +12,50 @@ function getmessage(message) {
     console.log(massages[0]);
     
     if (massages[0] == "lefclick") {
-      inputter.ClickMouse(1);
+      robot.mouseClick();
       console.log("clicked");
       righttouch = false;
     } else if (massages[0] == "rigclick") {
       if (righttouch == false) {
-        inputter.ClickMouse(3);
+        robot.mouseClick('right');
         console.log("Rclicked");
       }
       righttouch = true;
     } else if (massages[0] == "cursol") {
       let mousePos = [0, 0];
-        mousePos = inputter.GetMouse();
+        mousePos = robot.getMousePos();
         console.log(mousePos);
       if (mousePos != null && massages.length >= 1) {
         const x = mousePos[0] + Number(massages[1]) * 4;
         const y = mousePos[1] + Number(massages[2]) * 4;
         console.log(x + "," + y);
-        inputter.MoveMouse(x, y);
+        robot.moveMouse(x, y);
       }
     } else if (massages[0] == "scroll") {
       if (scrolled >= 3) {
-        if(massages[1] == "up"){
-          inputter.ClickMouse(4);
-        }else{
-          inputter.ClickMouse(5);
-        }
+        const mousePos = robot.getMousePos();
+        const x = Number(massages[1]);
+        const y = Number(massages[2]);
+        robot.scrollMouse(x,y);
+        console.log(x + "," + y);
+        
         scrolled = 0;
       }
       scrolled++;
     } else if (massages[0] == "drag") {
-      inputter.ChangeMouse(1,1);
+      robot.ChangeMouse(1,1);
       let mousePos = [0, 0];
-      mousePos = inputter.GetMouse();
+      mousePos = robot.GetMouse();
       console.log(mousePos);
       if (mousePos != null && massages.length >= 1) {
         const x = mousePos[0] + Number(massages[1]) * 4;
         const y = mousePos[1] + Number(massages[2]) * 4;
         console.log(x + "," + y);
-        inputter.MoveMouse(x, y);
+        robot.MoveMouse(x, y);
       }
     } else if (massages[0] == "end") {
-      inputter.ChangeMouse(1,0);
-      inputter.ChangeMouse(3,0);
+      robot.ChangeMouse(1,0);
+      robot.ChangeMouse(3,0);
     }
   }catch(e){
     console.error(e);

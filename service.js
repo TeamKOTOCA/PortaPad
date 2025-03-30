@@ -43,19 +43,19 @@ function getmessage(message) {
       }
       scrolled++;
     } else if (massages[0] == "drag") {
-      robot.ChangeMouse(1,1);
+      robot.mouseToggle('down', 'left');
       let mousePos = [0, 0];
-      mousePos = robot.GetMouse();
+      mousePos = robot.getMousePos();
       console.log(mousePos);
       if (mousePos != null && massages.length >= 1) {
         const x = mousePos[0] + Number(massages[1]) * 4;
         const y = mousePos[1] + Number(massages[2]) * 4;
         console.log(x + "," + y);
-        robot.MoveMouse(x, y);
+        robot.moveMouse(x, y);
       }
     } else if (massages[0] == "end") {
-      robot.ChangeMouse(1,0);
-      robot.ChangeMouse(3,0);
+      robot.mouseToggle('up', 'left');
+      robot.mouseToggle('up', 'right');
     }
   }catch(e){
     console.error(e);

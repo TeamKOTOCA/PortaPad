@@ -1,0 +1,5 @@
+Release/obj.target/x11/x11.o: ../x11.cpp \
+ /home/povo/.cache/node-gyp/22.14.0/include/node/node_api.h \
+ /home/povo/.cache/node-gyp/22.14.0/include/node/js_native_api.h \
+ /home/povo/.cache/node-gyp/22.14.0/include/node/js_native_api_types.h \
+ /home/povo/.cache/node-gyp/22.14.0/include/node/node_api_types.h

@@ -1,4 +1,4 @@
-const inputter = require("./modules/x11");
+const inputter = require("./modules/build/Release/x11");
 const readline = require('readline');
 
 let righttouch = false;

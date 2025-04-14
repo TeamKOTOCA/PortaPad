@@ -1,6 +1,5 @@
 const robot = require('robotjs');
 const readline = require('readline');
-const robot = require('robotjs');
 
 let righttouch = false;
 let scrolled = 0;

@@ -1,15 +1,14 @@
 use enigo::*;
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};  // Messageのインポート
-use url::Url;
+use std::sync::Arc;
+use tokio::sync::Mutex;
 use futures_util::{SinkExt, StreamExt};
 use serde_json;
 use serde::Deserialize;
 use serde::Serialize;
-use webrtc::peer_connection::peer_connection_state::RTCPeerConnectionState;
 use webrtc::api::APIBuilder;
 use webrtc::api::media_engine::MediaEngine;
-use webrtc::peer_connection::RTCPeerConnection;
-use webrtc::ice_transport::ice_server::RTCIceServer;
+use webrtc::ice_transport::ice_candidate::RTCIceCandidateInit;
 use webrtc::peer_connection::configuration::RTCConfiguration;
 use webrtc::peer_connection::sdp::session_description::RTCSessionDescription;
 
@@ -53,6 +52,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         ..Default::default()
     };
 
+    //fromhost共有用
+    let fromhost_shared = Arc::new(Mutex::new(None::<String>));
+
     // マウスを座標(500, 300)へ移動.
     enigo.mouse_move_to(500, 300);
     println!("sssssss");
@@ -67,14 +69,68 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // PeerConnection作成
     let peer_connection = api.new_peer_connection(config).await?;
+    
+    let write = Arc::new(Mutex::new(write));
+    let write_clone = Arc::clone(&write);
+    let fromhost_clone = Arc::clone(&fromhost_shared);
+
+
+    peer_connection.on_ice_candidate(Box::new(move |candidate| {
+    let write = write_clone.clone();
+    let fromhost = Arc::clone(&fromhost_clone);
+    Box::pin(async move {
+        if let Some(c) = candidate {
+            // JSON化でエラーが出る可能性があるので、match で手動処理
+            let json_candidate = match serde_json::to_string(&c) {
+                Ok(j) => j,
+                Err(e) => {
+                    eprintln!("Error serializing candidate: {:?}", e);
+                    return;
+                }
+            };
+
+            let tohost = {
+                let fromhost_guard = fromhost.lock().await;
+                fromhost_guard.clone().unwrap_or_else(|| "unknown".to_string())
+            };
+
+            let reply = AnswerSigMessage {
+                mtype: "ice".to_string(),
+                tohost: tohost,
+                body: json_candidate,
+            };
+
+            let json = match serde_json::to_string(&reply) {
+                Ok(j) => j,
+                Err(e) => {
+                    eprintln!("シリアライズのエラー: {:?}", e);
+                    return;
+                }
+            };
+
+            if let Err(e) = write.lock().await.send(Message::Text(json)).await {
+                eprintln!("送信エラー: {:?}", e);
+            }
+        }
+    })
+}));
+
+
 
     while let Some(msg) = read.next().await {
         let text = msg?.into_text()?;
         println!("{}", text);
         let signal: SigMessage = serde_json::from_str(&text)?;
-        print!("{}", signal.mtype);
-        if(signal.mtype == "sdp"){
-            print!("sdpきた");
+        println!("{}", signal.mtype);
+
+            // fromhost を書き込み
+        {
+            let mut fromhost_lock = fromhost_shared.lock().await;
+            *fromhost_lock = Some(signal.fromhost.clone());
+        }
+
+        if signal.mtype == "sdp" {
+            println!("sdpきた");
             let sdpsignal: SigMessageSdp = serde_json::from_str(&text)?;
 
             peer_connection.set_remote_description(sdpsignal.body).await?;
@@ -89,8 +145,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 body: answerstring,
             };
             let json = serde_json::to_string(&reply)?;
-            write.send(Message::Text(json)).await?;
+            write.lock().await.send(Message::Text(json)).await?;
+        }else if signal.mtype == "ice" {
+            print!("iceきた");
+                let candidate_init: RTCIceCandidateInit = serde_json::from_value(signal.body)?;
+                peer_connection.add_ice_candidate(candidate_init).await?;
         }
     }
+
     Ok(())
 }

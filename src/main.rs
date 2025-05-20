@@ -33,6 +33,13 @@ struct AnswerSigMessage {
     body: String,
 }
 
+#[derive(Serialize)]
+struct IceCandidateInit {
+    candidate: String,
+    sdpMid: Option<String>,
+    sdpMLineIndex: Option<u16>,
+}
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut enigo = Enigo::new();
@@ -115,6 +122,28 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     })
 }));
 
+    peer_connection.on_data_channel(Box::new(|dc| {
+        println!("DataChannel received: {}", dc.label());
+
+        Box::pin(async move {
+            // クローンして move で使う
+            let dc_clone = Arc::clone(&dc);
+            dc.on_open(Box::new(move || {
+                println!("DataChannel opened!");
+                Box::pin(async move {
+                    dc_clone.send_text("こんにちは from offer").await.unwrap();
+                })
+            }));
+
+            // クローンして message 用に使う
+            let dc_clone2 = Arc::clone(&dc);
+            dc.on_message(Box::new(move |msg| {
+                println!("Received: {:?}", String::from_utf8_lossy(&msg.data));
+                // 必要なら dc_clone2 を使って返信などもできる
+                Box::pin(async {})
+            }));
+        })
+    }));
 
 
     while let Some(msg) = read.next().await {

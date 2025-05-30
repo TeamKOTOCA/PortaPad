@@ -191,6 +191,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             print!("iceきた");
                 let candidate_init: RTCIceCandidateInit = serde_json::from_value(signal.body)?;
                 peer_connection.add_ice_candidate(candidate_init).await?;
+        }else if signal.mtype == "myname" {
+            let json = serde_json::to_string(&signal.body).unwrap();
+            Notification::new()
+                .summary("接続コード")
+                .body(&json)
+                .show()
+                .unwrap();
         }
     }
 

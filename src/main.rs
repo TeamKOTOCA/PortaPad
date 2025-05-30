@@ -1,8 +1,6 @@
 use enigo::*;
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};  // Messageのインポート
 use std::sync::Arc;
-use tokio::time::sleep;
-use std::time::Duration;
 use tokio::sync::Mutex;
 use futures_util::{SinkExt, StreamExt};
 use serde_json;
@@ -14,6 +12,7 @@ use webrtc::ice_transport::ice_candidate::RTCIceCandidateInit;
 use webrtc::peer_connection::configuration::RTCConfiguration;
 use webrtc::peer_connection::sdp::session_description::RTCSessionDescription;
 use notify_rust::Notification;
+use device_query::{DeviceQuery, DeviceState, MouseState};
 
 
 #[derive(Deserialize, Debug)]  // JSON用の構造体
@@ -46,6 +45,7 @@ struct IceCandidateInit {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut enigo = Enigo::new();
+
     
     //MediaEngine: 音声/映像のコーデック設定
     let mut m = MediaEngine::default();
@@ -64,12 +64,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     //fromhost共有用
     let fromhost_shared = Arc::new(Mutex::new(None::<String>));
-
-    // マウスを座標(500, 300)へ移動.
-    enigo.mouse_move_to(500, 300);
-    println!("sssssss");
-    enigo.mouse_click(MouseButton::Left);
-    //enigo終.
 
     // WebSocket接続開始
     let (ws_stream, _) = connect_async("wss://portapad-signal.onrender.com").await?;
@@ -154,10 +148,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 Box::pin(async move{
                     let text = String::from_utf8_lossy(&msg_data);
                     let first_two: String = text.chars().take(2).collect();
-                    if first_two == "mc"{
+                    let no_first: String = text.chars().skip(2).collect();
+                    if first_two == "mb"{
+                        println!("mb");
 
                     }else if first_two == "mm" {
-                        
+                        // マウス座標を取得
+                        let device_state = DeviceState::new();
+                        let mouse: MouseState = device_state.get_mouse();
+
+                        //コンマで分ける
+                        let parts: Vec<&str> = no_first.split(',').collect();
+                        let part_x = parts.get(1).unwrap_or(&"0");
+                        let part_x_int: i32 = part_x.parse::<i32>().unwrap();
+                        let mouse_to_x = mouse.coords.0 + part_x_int;
+                        println!("move_x: {:?}", mouse_to_x.to_string());
                     }
                 })
             }));

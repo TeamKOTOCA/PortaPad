@@ -1,6 +1,8 @@
 use enigo::*;
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};  // Messageのインポート
 use std::sync::Arc;
+use tokio::time::sleep;
+use std::time::Duration;
 use tokio::sync::Mutex;
 use futures_util::{SinkExt, StreamExt};
 use serde_json;
@@ -11,6 +13,7 @@ use webrtc::api::media_engine::MediaEngine;
 use webrtc::ice_transport::ice_candidate::RTCIceCandidateInit;
 use webrtc::peer_connection::configuration::RTCConfiguration;
 use webrtc::peer_connection::sdp::session_description::RTCSessionDescription;
+use notify_rust::Notification;
 
 
 #[derive(Deserialize, Debug)]  // JSON用の構造体
@@ -139,8 +142,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             let dc_clone2 = Arc::clone(&dc);
             dc.on_message(Box::new(move |msg| {
                 println!("Received: {:?}", String::from_utf8_lossy(&msg.data));
+                let msg_data = msg.data.clone();
                 // 必要なら dc_clone2 を使って返信などもできる
-                Box::pin(async {})
+                Box::pin(async move{
+                    let text = String::from_utf8_lossy(&msg_data);
+                    let first_two: String = text.chars().take(2).collect();
+                    if first_two == "mc"{
+
+                    }else if first_two == "mm" {
+                        
+                    }
+                })
             }));
         })
     }));

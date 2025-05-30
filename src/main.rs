@@ -133,6 +133,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             let dc_clone = Arc::clone(&dc);
             dc.on_open(Box::new(move || {
                 println!("DataChannel opened!");
+                Notification::new()
+                    .summary("接続通知")
+                    .body("クライアントと接続されました")
+                    .timeout(8000)
+                    .appname("PortapadSystem")
+                    .show()
+                    .unwrap();
                 Box::pin(async move {
                     dc_clone.send_text("こんにちは from offer").await.unwrap();
                 })
@@ -196,6 +203,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             Notification::new()
                 .summary("接続コード")
                 .body(&json)
+                .timeout(8000)
+                .appname("PortapadSystem")
                 .show()
                 .unwrap();
         }

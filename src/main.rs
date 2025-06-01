@@ -1,7 +1,8 @@
 use enigo::*;
+use once_cell::sync::Lazy;
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};  // Messageのインポート
 use std::sync::Arc;
-use std::thread;
+use tokio::sync::RwLock;
 use tokio::sync::Mutex;
 use tokio::sync::mpsc;
 use futures_util::{SinkExt, StreamExt};
@@ -14,7 +15,7 @@ use webrtc::ice_transport::ice_candidate::RTCIceCandidateInit;
 use webrtc::peer_connection::configuration::RTCConfiguration;
 use webrtc::peer_connection::sdp::session_description::RTCSessionDescription;
 use notify_rust::Notification;
-use device_query::{DeviceQuery, DeviceState, MouseState};
+use rdev::{listen, Event};
 
 
 #[derive(Deserialize, Debug)]  // JSON用の構造体
@@ -43,28 +44,22 @@ struct IceCandidateInit {
     sdpMid: Option<String>,
     sdpMLineIndex: Option<u16>,
 }
+
+static MOUSEPOS: Lazy<[Arc<RwLock<i32>>; 2]> = Lazy::new(|| [
+    Arc::new(RwLock::new(0)),
+    Arc::new(RwLock::new(0)),
+]);
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let (tx, mut rx) = mpsc::channel::<(i32, i32)>(100);
 
-    // ここでは sync チャネルに変更した例を示します
-    let (sync_tx, sync_rx) = std::sync::mpsc::channel::<(i32, i32)>();
-
-    // 別スレッドで同期的に処理
-    thread::spawn(move || {
-        let device_state = DeviceState::new();
-        let mut enigo = Enigo::new();
-        while let Ok((dx, dy)) = sync_rx.recv() {
-            let mouse = device_state.get_mouse();
-            let dx_ad = dx * 3;
-            let dy_ad = dy * 3;
-            let new_x = mouse.coords.0 + dx_ad;
-            let new_y = mouse.coords.1 + dy_ad;
-            enigo.mouse_move_to(new_x, new_y);
+    tokio::spawn(async {
+        if let Err(error) = listen(callback) {
+            eprintln!("Error in listener: {:?}", error);
         }
     });
 
-    
     //MediaEngine: 音声/映像のコーデック設定
     let mut m = MediaEngine::default();
     m.register_default_codecs()?;
@@ -136,11 +131,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     })
 }));
-    let sync_tx = Arc::new(sync_tx);
 
     peer_connection.on_data_channel(Box::new(move |dc| {
         println!("DataChannel received: {}", dc.label());
-        let sync_tx = Arc::clone(&sync_tx);
 
         Box::pin(async move {
             // クローンして move で使う
@@ -161,9 +154,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
             // クローンして message 用に使う
             let dc_clone2 = Arc::clone(&dc);
-            let sync_tx = Arc::clone(&sync_tx);
             dc.on_message(Box::new(move |msg| {
-                let sync_tx = Arc::clone(&sync_tx);
 
                 println!("Received: {:?}", String::from_utf8_lossy(&msg.data));
                 let msg_data = msg.data.clone();
@@ -183,13 +174,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             enigo.mouse_click(MouseButton::Right);
                         }
                     }else if first_two == "mm" {
-                        //コンマで分ける
                         let parts: Vec<&str> = no_first.split(',').collect();
                         let part_x = parts.get(0).unwrap_or(&"0");
                         let part_y = parts.get(1).unwrap_or(&"0");
-                        let part_x_int: i32 = part_x.parse::<i32>().unwrap();
-                        let part_y_int: i32 = part_y.parse::<i32>().unwrap();
-                        sync_tx.send((part_x_int,part_y_int)).unwrap();
+                        let part_x_int: i32 = part_x.parse::<i32>().unwrap() * 3;
+                        let part_y_int: i32 = part_y.parse::<i32>().unwrap() * 3;
+                        let x = MOUSEPOS[0].read().await;
+                        let y = MOUSEPOS[1].read().await;
+                        let new_x = *x + part_x_int;
+                        let new_y = *y + part_y_int;
+                        enigo.mouse_move_to(new_x, new_y);
+                    }else if first_two == "md"{
+                        
                     }
                 })
             }));
@@ -243,4 +239,22 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     Ok(())
+}
+
+async fn write_mouse(x: f64, y: f64) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    let mut x_lock = MOUSEPOS[0].write().await;
+    *x_lock = x as i32;
+    let mut y_lock = MOUSEPOS[1].write().await;
+    *y_lock = y as i32;
+    Ok(())
+}
+
+fn callback(event: rdev::Event) {
+    if let rdev::EventType::MouseMove { x, y } = event.event_type {
+        tokio::spawn(async move {
+            if let Err(error) = write_mouse(x, y).await {
+                eprintln!("Error in listener: {:?}", error);
+            }
+        });
+    }
 }

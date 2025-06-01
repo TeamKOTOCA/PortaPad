@@ -45,20 +45,9 @@ struct IceCandidateInit {
     sdpMLineIndex: Option<u16>,
 }
 
-static MOUSEPOS: Lazy<[Arc<RwLock<i32>>; 2]> = Lazy::new(|| [
-    Arc::new(RwLock::new(0)),
-    Arc::new(RwLock::new(0)),
-]);
-
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let (tx, mut rx) = mpsc::channel::<(i32, i32)>(100);
-
-    tokio::spawn(async {
-        if let Err(error) = listen(callback) {
-            eprintln!("Error in listener: {:?}", error);
-        }
-    });
 
     //MediaEngine: 音声/映像のコーデック設定
     let mut m = MediaEngine::default();
@@ -179,13 +168,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         let part_y = parts.get(1).unwrap_or(&"0");
                         let part_x_int: i32 = part_x.parse::<i32>().unwrap() * 3;
                         let part_y_int: i32 = part_y.parse::<i32>().unwrap() * 3;
-                        let x = MOUSEPOS[0].read().await;
-                        let y = MOUSEPOS[1].read().await;
-                        let new_x = *x + part_x_int;
-                        let new_y = *y + part_y_int;
-                        enigo.mouse_move_to(new_x, new_y);
+                        enigo.mouse_move_relative(part_x_int, part_y_int);
                     }else if first_two == "md"{
-                        
+                        enigo.mouse_down(MouseButton::Left);
+                        let parts: Vec<&str> = no_first.split(',').collect();
+                        let part_x = parts.get(0).unwrap_or(&"0");
+                        let part_y = parts.get(1).unwrap_or(&"0");
+                        let part_x_int: i32 = part_x.parse::<i32>().unwrap() * 3;
+                        let part_y_int: i32 = part_y.parse::<i32>().unwrap() * 3;
+                        enigo.mouse_move_relative(part_x_int, part_y_int);
                     }
                 })
             }));
@@ -239,22 +230,4 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     Ok(())
-}
-
-async fn write_mouse(x: f64, y: f64) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let mut x_lock = MOUSEPOS[0].write().await;
-    *x_lock = x as i32;
-    let mut y_lock = MOUSEPOS[1].write().await;
-    *y_lock = y as i32;
-    Ok(())
-}
-
-fn callback(event: rdev::Event) {
-    if let rdev::EventType::MouseMove { x, y } = event.event_type {
-        tokio::spawn(async move {
-            if let Err(error) = write_mouse(x, y).await {
-                eprintln!("Error in listener: {:?}", error);
-            }
-        });
-    }
 }

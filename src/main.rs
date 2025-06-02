@@ -177,6 +177,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         let part_x_int: i32 = part_x.parse::<i32>().unwrap() * 3;
                         let part_y_int: i32 = part_y.parse::<i32>().unwrap() * 3;
                         enigo.mouse_move_relative(part_x_int, part_y_int);
+                    }else if first_two == "ms"{
+                        let parts: Vec<&str> = no_first.split(',').collect();
+                        let part_x = parts.get(0).unwrap_or(&"0");
+                        let part_y = parts.get(1).unwrap_or(&"0");
+                        let part_x_int: i32 = part_x.parse::<i32>().unwrap() * 3;
+                        let part_y_int: i32 = part_y.parse::<i32>().unwrap() * 3;
+                        enigo.mouse_scroll_x(part_x_int);
+                        enigo.mouse_scroll_y(part_y_int);
+                    }else if first_two == "mu"{
+                        enigo.mouse_up(MouseButton::Left);
+                        enigo.mouse_up(MouseButton::Right);
+                        enigo.mouse_up(MouseButton::Middle);
                     }
                 })
             }));

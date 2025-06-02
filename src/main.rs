@@ -181,8 +181,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         let parts: Vec<&str> = no_first.split(',').collect();
                         let part_x = parts.get(0).unwrap_or(&"0");
                         let part_y = parts.get(1).unwrap_or(&"0");
-                        let part_x_int: i32 = part_x.parse::<i32>().unwrap() * 3;
-                        let part_y_int: i32 = part_y.parse::<i32>().unwrap() * 3;
+                        let part_x_int: i32 = part_x.parse::<i32>().unwrap() / 6;
+                        let part_y_int: i32 = part_y.parse::<i32>().unwrap() / 6;
                         enigo.mouse_scroll_x(part_x_int);
                         enigo.mouse_scroll_y(part_y_int);
                     }else if first_two == "mu"{

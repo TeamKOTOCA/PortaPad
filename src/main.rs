@@ -189,6 +189,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         enigo.mouse_up(MouseButton::Left);
                         enigo.mouse_up(MouseButton::Right);
                         enigo.mouse_up(MouseButton::Middle);
+                    }else if first_two == "kp"{
+                        let key = string_to_key(&no_first);
+                        enigo.key_click(key);
+                    }else if first_two == "ku"{
+                        let key = string_to_key(&no_first);
+                        enigo.key_up(key);
+                    }else if first_two == "kd"{
+                        let key = string_to_key(&no_first);
+                        enigo.key_down(key);
                     }
                 })
             }));
@@ -242,4 +251,29 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     Ok(())
+}
+
+fn string_to_key(s: &str) -> Key {
+    match s {
+        "Return" => Key::Return,
+        "Backspace" => Key::Backspace,
+        "Tab" => Key::Tab,
+        "Escape" => Key::Escape,
+        "Space" => Key::Space,
+        "CapsLock" => Key::CapsLock,
+        "Shift" => Key::Shift,
+        "Control" => Key::Control,
+        "Alt" => Key::Alt,
+        "Meta" => Key::Meta,
+        "UpArrow" => Key::UpArrow,
+        "DownArrow" => Key::DownArrow,
+        "LeftArrow" => Key::LeftArrow,
+        "RightArrow" => Key::RightArrow,
+        // 単一文字ならレイアウトキーとして解釈
+        s if s.len() == 1 => {
+            let ch = s.chars().next().unwrap();
+            Key::Layout(ch)
+        }
+        _ => panic!("Unsupported key string: {}", s),
+    }
 }

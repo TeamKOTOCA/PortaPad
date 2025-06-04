@@ -211,7 +211,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let signal: SigMessage = serde_json::from_str(&text)?;
         println!("{}", signal.mtype);
 
-            // fromhost を書き込み
+        // fromhost を書き込み
         {
             let mut fromhost_lock = fromhost_shared.lock().await;
             *fromhost_lock = Some(signal.fromhost.clone());

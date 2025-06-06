@@ -29,6 +29,6 @@ copyright = "Copyright (c) 2025 Povo43"
 section = "utils"
 assets = [
     ["target/release/PortaPad", "usr/bin/", "755"],
-    ["debian/portapad.service", "lib/systemd/system/", "644"],
+    ["target/debian/portapad.service", "~/.config/systemd/user/", "644"],
 ]
-maintainer-scripts = "debian/scripts"
+maintainer-scripts = "target/debian/scripts"

@@ -2,6 +2,8 @@
 name = "PortaPad"
 version = "0.1.0"
 edition = "2024"
+description = "ニッチで便利なインプット。"
+license = "Proprietary"
 
 [dependencies]
 enigo        = "0.1"
@@ -18,3 +20,15 @@ webrtc = "0.9"
 notify-rust = "4"
 rdev = "0.5"
 once_cell = "1.21.3"
+
+
+[package.metadata.deb]
+maintainer = "Povo43 <story-seller@outlook.com>"
+priority = "optional"
+copyright = "Copyright (c) 2025 Povo43"
+section = "utils"
+assets = [
+    ["target/release/PortaPad", "usr/bin/", "755"],
+    ["debian/portapad.service", "lib/systemd/system/", "644"],
+]
+maintainer-scripts = "debian/scripts"

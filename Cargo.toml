@@ -23,4 +23,10 @@ once_cell = "1.21.3"
 windows-service = "0.8.0"
 log = "0.4"
 toml = "0.8"
-eframe = "0.27"
+eframe = "0.31.1"
+egui = "0.31.1"
+egui_extras = { version = "0.31.1", features = ["all_loaders"] }
+
+[[bin]]
+name = "setting"
+path = "setting/main.rs"

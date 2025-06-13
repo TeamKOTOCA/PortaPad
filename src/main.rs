@@ -40,15 +40,15 @@ fn open_setting(){
 }
 
 #[tokio::main]
-async fn main(){
+async fn main(){/*
     let config_path = get_config_path();
     if !config_path.exists() {
-        open_setting();
+        //open_setting();
     }
     let config_str = fs::read_to_string(&config_path)
         .expect("読み込み失敗");
     let config: Config = toml::from_str(&config_str)
         .expect("TOMLエラー");
-    println!("{:?}", config);
+    println!("{:?}", config);*/
     remote::remote_main().await.unwrap();
 }

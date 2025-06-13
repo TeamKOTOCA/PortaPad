@@ -120,12 +120,21 @@ pub async fn remote_main() -> Result<(), Box<dyn std::error::Error>> {
     })
 }));
 
+    let left_m= Arc::new(Mutex::new(false));
+    let right_m= Arc::new(Mutex::new(false));
+    let left_m_m = left_m.clone();
+    let right_m_m = right_m.clone();
+
     peer_connection.on_data_channel(Box::new(move |dc| {
         println!("DataChannel received: {}", dc.label());
+        let right_m = Arc::clone(&right_m_m);
+        let left_m = Arc::clone(&left_m_m);
 
         Box::pin(async move {
             // クローンして move で使う
             let dc_clone = Arc::clone(&dc);
+            let right_m = Arc::clone(&right_m);
+            let left_m = Arc::clone(&left_m);
             dc.on_open(Box::new(move || {
                 println!("DataChannel opened!");
                 Notification::new()
@@ -140,30 +149,31 @@ pub async fn remote_main() -> Result<(), Box<dyn std::error::Error>> {
                 })
             }));
 
-            // クローンして message 用に使う
             let dc_clone2 = Arc::clone(&dc);
             dc.on_message(Box::new(move |msg| {
 
                 println!("Received: {:?}", String::from_utf8_lossy(&msg.data));
                 let msg_data = msg.data.clone();
-                // 必要なら dc_clone2 を使って返信などもできる
+                let right_m = Arc::clone(&right_m);
+                let left_m = Arc::clone(&left_m);
                 Box::pin(async move{
                     //操作モジュールのenigo初期化
                     let mut enigo = Enigo::new();
-
+                    
                     let text = String::from_utf8_lossy(&msg_data);
                     let first_two: String = text.chars().take(2).collect();
                     let no_first: String = text.chars().skip(2).collect();
                     if first_two == "mb"{
-                        println!("mb");
                         if no_first == "0"{
                             enigo.mouse_click(MouseButton::Left);
                         }else if no_first == "1" {
-                            enigo.mouse_click(MouseButton::Right);
+                            enigo.mouse_down(MouseButton::Right);
+                            let mut locked_right = right_m.lock().await;
+                            *locked_right = false;
                         }
                     }else if first_two == "mm" {
                         let parts: Vec<&str> = no_first.split(',').collect();
-                        let part_x = parts.get(0).unwrap_or(&"0");
+                        let part_x: &&str = parts.get(0).unwrap_or(&"0");
                         let part_y = parts.get(1).unwrap_or(&"0");
                         let part_x_int: i32 = part_x.parse::<i32>().unwrap() * 3;
                         let part_y_int: i32 = part_y.parse::<i32>().unwrap() * 3;
@@ -185,9 +195,18 @@ pub async fn remote_main() -> Result<(), Box<dyn std::error::Error>> {
                         enigo.mouse_scroll_x(part_x_int);
                         enigo.mouse_scroll_y(part_y_int);
                     }else if first_two == "mu"{
-                        enigo.mouse_up(MouseButton::Left);
-                        enigo.mouse_up(MouseButton::Right);
-                        enigo.mouse_up(MouseButton::Middle);
+                            let mut locked_left = left_m.lock().await;
+                            let mut locked_right = right_m.lock().await;
+                        if *locked_left {
+                            println!("aa");
+                            enigo.mouse_up(MouseButton::Left);
+                            *locked_left = false;
+                        }
+                        if *locked_right {
+                            println!("as");
+                            enigo.mouse_up(MouseButton::Right);
+                            *locked_right = false;
+                        }
                     }else if first_two == "kp"{
                         let key = string_to_key(&no_first);
                         enigo.key_click(key);

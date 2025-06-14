@@ -67,7 +67,15 @@ pub async fn remote_main() -> Result<(), Box<dyn std::error::Error>> {
     let fromhost_shared = Arc::new(Mutex::new(None::<String>));
 
     // WebSocket接続開始
-    let (ws_stream, _) = connect_async("wss://portapad-signal.onrender.com").await?;
+    let ws_stream_result = connect_async("wss://portapad-signal.onrender.com").await;
+    let (ws_stream, _) = match ws_stream_result {
+        Ok(result) => result,
+        Err(e) => {
+            eprintln!("WebSocket接続に失敗しました: {:?}", e);
+            return Err(e.into()); // 必要に応じて型変換
+        }
+    };
+
     let (mut write, mut read) = ws_stream.split();
 
     write.send(Message::Text("host".to_string())).await?;
@@ -167,9 +175,7 @@ pub async fn remote_main() -> Result<(), Box<dyn std::error::Error>> {
                         if no_first == "0"{
                             enigo.mouse_click(MouseButton::Left);
                         }else if no_first == "1" {
-                            enigo.mouse_down(MouseButton::Right);
-                            let mut locked_right = right_m.lock().await;
-                            *locked_right = false;
+                            enigo.mouse_click(MouseButton::Right);
                         }
                     }else if first_two == "mm" {
                         let parts: Vec<&str> = no_first.split(',').collect();

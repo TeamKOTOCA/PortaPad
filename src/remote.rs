@@ -1,6 +1,8 @@
 use enigo::*;
+use futures_util::future::ok;
 use once_cell::sync::Lazy;
-use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};  // Messageのインポート
+use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
+use webrtc::ice::state;  // Messageのインポート
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use tokio::sync::Mutex;
@@ -64,6 +66,8 @@ pub async fn remote_main() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     //fromhost共有用
+
+
     let fromhost_shared = Arc::new(Mutex::new(None::<String>));
 
     // WebSocket接続開始
@@ -81,7 +85,13 @@ pub async fn remote_main() -> Result<(), Box<dyn std::error::Error>> {
     write.send(Message::Text("host".to_string())).await?;
 
     // PeerConnection作成
-    let peer_connection = api.new_peer_connection(config).await?;
+    let peer_connection = match api.new_peer_connection(config).await {
+        Ok(pc) => pc,
+        Err(e) => {
+            eprintln!("エラー: {:?}", e);
+            return Err(e.into());
+        }
+    };
     
     let write = Arc::new(Mutex::new(write));
     let write_clone = Arc::clone(&write);
@@ -156,6 +166,20 @@ pub async fn remote_main() -> Result<(), Box<dyn std::error::Error>> {
                     dc_clone.send_text("こんにちは from offer").await.unwrap();
                 })
             }));
+            dc.on_close(Box::new(move || {
+                println!("DataChannel closed!");
+                Notification::new()
+                    .summary("切断通知")
+                    .body("クライアントとの接続が切断されました")
+                    .timeout(8000)
+                    .appname("PortapadSystem")
+                    .show()
+                    .unwrap();
+                Box::pin(async move {
+                    println!("DataChannel close完了");
+                    return ;
+                })
+            }));
 
             let dc_clone2 = Arc::clone(&dc);
             dc.on_message(Box::new(move |msg| {
@@ -171,7 +195,9 @@ pub async fn remote_main() -> Result<(), Box<dyn std::error::Error>> {
                     let text = String::from_utf8_lossy(&msg_data);
                     let first_two: String = text.chars().take(2).collect();
                     let no_first: String = text.chars().skip(2).collect();
-                    if first_two == "mb"{
+                    if first_two == "pg"{
+
+                    }else if first_two == "mb"{
                         if no_first == "0"{
                             enigo.mouse_click(MouseButton::Left);
                         }else if no_first == "1" {

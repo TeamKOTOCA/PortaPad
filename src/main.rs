@@ -1,3 +1,5 @@
+#![windows_subsystem = "windows"]
+
 mod remote;
 use tokio;
 use serde::Deserialize;
@@ -50,5 +52,11 @@ async fn main(){/*
     let config: Config = toml::from_str(&config_str)
         .expect("TOMLエラー");
     println!("{:?}", config);*/
-    remote::remote_main().await.unwrap();
+    loop {
+        if let Err(e) = remote::remote_main().await {
+            eprintln!("remote_mainが終了しました: {:?}", e);
+            // 必要なら少し待機してから再起動
+            tokio::time::sleep(std::time::Duration::from_secs(3)).await;
+        }
+    }
 }

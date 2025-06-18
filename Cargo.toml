@@ -30,3 +30,7 @@ egui_extras = { version = "0.31.1", features = ["all_loaders"] }
 [[bin]]
 name = "setting"
 path = "setting/main.rs"
+
+
+[profile.release]
+panic = "abort"

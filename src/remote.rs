@@ -1,10 +1,6 @@
 use enigo::*;
-use futures_util::future::ok;
-use once_cell::sync::Lazy;
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
-use webrtc::ice::state;  // Messageのインポート
 use std::sync::Arc;
-use tokio::sync::RwLock;
 use tokio::sync::Mutex;
 use tokio::sync::mpsc;
 use futures_util::{SinkExt, StreamExt};
@@ -17,7 +13,6 @@ use webrtc::ice_transport::ice_candidate::RTCIceCandidateInit;
 use webrtc::peer_connection::configuration::RTCConfiguration;
 use webrtc::peer_connection::sdp::session_description::RTCSessionDescription;
 use notify_rust::Notification;
-use rdev::{listen, Event};
 
 
 #[derive(Deserialize, Debug)]  // JSON用の構造体
@@ -48,6 +43,11 @@ struct IceCandidateInit {
 }
 
 pub async fn remote_main() -> Result<(), Box<dyn std::error::Error>> {
+    use tokio::sync::Notify;
+
+    let notify = Arc::new(Notify::new());
+    let notify_for_dc = notify.clone();
+
     let (tx, mut rx) = mpsc::channel::<(i32, i32)>(100);
 
     //MediaEngine: 音声/映像のコーデック設定
@@ -96,7 +96,7 @@ pub async fn remote_main() -> Result<(), Box<dyn std::error::Error>> {
     let write = Arc::new(Mutex::new(write));
     let write_clone = Arc::clone(&write);
     let fromhost_clone = Arc::clone(&fromhost_shared);
-
+    let write_for_close = write.clone();
 
     peer_connection.on_ice_candidate(Box::new(move |candidate| {
     let write = write_clone.clone();
@@ -147,9 +147,12 @@ pub async fn remote_main() -> Result<(), Box<dyn std::error::Error>> {
         println!("DataChannel received: {}", dc.label());
         let right_m = Arc::clone(&right_m_m);
         let left_m = Arc::clone(&left_m_m);
+        let notify = notify_for_dc.clone();
+        let write = write_for_close.clone();
 
         Box::pin(async move {
             // クローンして move で使う
+            let write = write.clone();
             let dc_clone = Arc::clone(&dc);
             let right_m = Arc::clone(&right_m);
             let left_m = Arc::clone(&left_m);
@@ -162,10 +165,21 @@ pub async fn remote_main() -> Result<(), Box<dyn std::error::Error>> {
                     .appname("PortapadSystem")
                     .show()
                     .unwrap();
+
+                // WebSocket切断処理（非同期なので tokio::spawn などで起動）
+                let write = write.clone();
+                tokio::spawn(async move {
+                    println!("WebSocketを閉じます");
+                    if let Err(e) = write.lock().await.close().await {
+                        eprintln!("WebSocketクローズエラー: {:?}", e);
+                    }
+                });
+
                 Box::pin(async move {
                     dc_clone.send_text("こんにちは from offer").await.unwrap();
                 })
             }));
+            let notify = notify.clone();
             dc.on_close(Box::new(move || {
                 println!("DataChannel closed!");
                 Notification::new()
@@ -175,9 +189,10 @@ pub async fn remote_main() -> Result<(), Box<dyn std::error::Error>> {
                     .appname("PortapadSystem")
                     .show()
                     .unwrap();
+                    notify.notify_one();
+
                 Box::pin(async move {
                     println!("DataChannel close完了");
-                    return ;
                 })
             }));
 
@@ -258,7 +273,16 @@ pub async fn remote_main() -> Result<(), Box<dyn std::error::Error>> {
     while let Some(msg) = read.next().await {
         let text = msg?.into_text()?;
         println!("{}", text);
-        let signal: SigMessage = serde_json::from_str(&text)?;
+        if text.trim().is_empty() {
+            continue; // 空メッセージはスキップ
+        }
+        let signal: SigMessage = match serde_json::from_str(&text) {
+            Ok(s) => s,
+            Err(e) => {
+                eprintln!("JSON parse error: {e}");
+                continue;
+            }
+        };
         println!("{}", signal.mtype);
 
         // fromhost を書き込み
@@ -299,6 +323,8 @@ pub async fn remote_main() -> Result<(), Box<dyn std::error::Error>> {
                 .unwrap();
         }
     }
+
+    notify.notified().await; // <- notify_one() が呼ばれるとここから再開
 
     Ok(())
 }

@@ -1,10 +1,9 @@
-#![windows_subsystem = "windows"]
-
 mod remote;
 use tokio;
 use serde::Deserialize;
 use std::{env, fs, path::PathBuf};
 use std::process::Command;
+use notify_rust::Notification;
 
 #[derive(Deserialize, Debug)]
 struct Config {

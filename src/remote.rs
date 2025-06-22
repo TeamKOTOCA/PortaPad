@@ -13,6 +13,7 @@ use webrtc::ice_transport::ice_candidate::RTCIceCandidateInit;
 use webrtc::peer_connection::configuration::RTCConfiguration;
 use webrtc::peer_connection::sdp::session_description::RTCSessionDescription;
 use notify_rust::Notification;
+use winapi::um::winuser;
 
 
 #[derive(Deserialize, Debug)]  // JSON用の構造体
@@ -176,7 +177,10 @@ pub async fn remote_main() -> Result<(), Box<dyn std::error::Error>> {
                 });
 
                 Box::pin(async move {
-                    dc_clone.send_text("こんにちは from offer").await.unwrap();
+                    let width = unsafe { winuser::GetSystemMetrics(winuser::SM_CXSCREEN) };
+                    let height = unsafe { winuser::GetSystemMetrics(winuser::SM_CYSCREEN) };
+                    dc_clone.send_text(format!("ms{},{}", width, height)).await.unwrap();
+                    //ms -> モニターサイズの略
                 })
             }));
             let notify = notify.clone();

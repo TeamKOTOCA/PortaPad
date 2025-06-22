@@ -26,6 +26,7 @@ toml = "0.8"
 eframe = "0.31.1"
 egui = "0.31.1"
 egui_extras = { version = "0.31.1", features = ["all_loaders"] }
+winapi = "0.3.9"
 
 [[bin]]
 name = "setting"

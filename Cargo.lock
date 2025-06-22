@@ -23,6 +23,7 @@ dependencies = [
  "tungstenite",
  "url",
  "webrtc",
+ "winapi",
  "windows-service",
 ]
 

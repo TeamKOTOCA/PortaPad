@@ -14,6 +14,7 @@ use webrtc::peer_connection::configuration::RTCConfiguration;
 use webrtc::peer_connection::sdp::session_description::RTCSessionDescription;
 use notify_rust::Notification;
 use winapi::um::winuser;
+use tokio::time::{interval, Duration};
 
 
 #[derive(Deserialize, Debug)]  // JSON用の構造体
@@ -98,6 +99,21 @@ pub async fn remote_main() -> Result<(), Box<dyn std::error::Error>> {
     let write_clone = Arc::clone(&write);
     let fromhost_clone = Arc::clone(&fromhost_shared);
     let write_for_close = write.clone();
+
+    let write_clone_for_ping = write.clone();
+    tokio::spawn(async move {
+        let mut ticker = interval(Duration::from_secs(60));
+        loop {
+            ticker.tick().await;
+            let ping_msg = Message::Ping(b"heartbeat".to_vec());
+            if let Err(e) = write_clone_for_ping.lock().await.send(ping_msg).await {
+                eprintln!("Ping送信エラー: {:?}", e);
+                break;
+            }
+            println!("Ping送信！");
+        }
+    });
+
 
     peer_connection.on_ice_candidate(Box::new(move |candidate| {
     let write = write_clone.clone();

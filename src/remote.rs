@@ -17,6 +17,15 @@ use winapi::um::winuser;
 use tokio::signal;
 use tokio::time::{interval, Duration};
 
+use webrtc::ice_transport::ice_candidate::RTCIceCandidate;
+
+#[derive(Serialize)]
+struct IceCandidateMsg {
+    candidate: String,
+    sdpMid: Option<String>,
+    sdpMLineIndex: Option<u16>,
+}
+
 
 #[derive(Deserialize, Debug)]  // JSON用の構造体
 struct SigMessage {
@@ -121,11 +130,25 @@ pub async fn remote_main() -> Result<(), Box<dyn std::error::Error>> {
     let fromhost = Arc::clone(&fromhost_clone);
     Box::pin(async move {
         if let Some(c) = candidate {
-            // JSON化でエラーが出る可能性があるので、match で手動処理
-            let json_candidate = match serde_json::to_string(&c) {
+            // webrtc-rs の to_json() を使う
+            let c_json = match c.to_json() {
+                Ok(json) => json,
+                Err(e) => {
+                    eprintln!("ICE to_json エラー: {:?}", e);
+                    return;
+                }
+            };
+
+            let msg = IceCandidateMsg {
+                candidate: c_json.candidate,
+                sdpMid: c_json.sdp_mid,
+                sdpMLineIndex: c_json.sdp_mline_index.map(|v| v as u16), // ← u16へ変換
+            };
+
+            let body = match serde_json::to_string(&msg) {
                 Ok(j) => j,
                 Err(e) => {
-                    eprintln!("Error serializing candidate: {:?}", e);
+                    eprintln!("ICE候補シリアライズ失敗: {:?}", e);
                     return;
                 }
             };
@@ -137,20 +160,20 @@ pub async fn remote_main() -> Result<(), Box<dyn std::error::Error>> {
 
             let reply = AnswerSigMessage {
                 mtype: "ice".to_string(),
-                tohost: tohost,
-                body: json_candidate,
+                tohost,
+                body,
             };
 
             let json = match serde_json::to_string(&reply) {
                 Ok(j) => j,
                 Err(e) => {
-                    eprintln!("シリアライズのエラー: {:?}", e);
+                    eprintln!("WebSocketメッセージ生成失敗: {:?}", e);
                     return;
                 }
             };
 
             if let Err(e) = write.lock().await.send(Message::Text(json)).await {
-                eprintln!("送信エラー: {:?}", e);
+                eprintln!("送信失敗: {:?}", e);
             }
         }
     })

@@ -14,6 +14,7 @@ use webrtc::peer_connection::configuration::RTCConfiguration;
 use webrtc::peer_connection::sdp::session_description::RTCSessionDescription;
 use notify_rust::Notification;
 use winapi::um::winuser;
+use tokio::signal;
 use tokio::time::{interval, Duration};
 
 
@@ -153,6 +154,7 @@ pub async fn remote_main() -> Result<(), Box<dyn std::error::Error>> {
             }
         }
     })
+    
 }));
 
     let left_m= Arc::new(Mutex::new(false));
@@ -344,8 +346,14 @@ pub async fn remote_main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
-    notify.notified().await; // <- notify_one() が呼ばれるとここから再開
-
+    tokio::select! {
+    _ = notify.notified() => {
+        println!("DataChannel切断通知を受けました");
+    }
+    _ = signal::ctrl_c() => {
+        println!("Ctrl+Cを受け取りました");
+    }
+    }
     Ok(())
 }
 

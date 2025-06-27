@@ -1,3 +1,4 @@
+#![windows_subsystem = "windows"]
 mod remote;
 use tokio;
 use serde::Deserialize;
@@ -15,7 +16,7 @@ struct ServerConfig {
     host: String,
     port: u16,
 }
-
+/*
 fn get_config_path() -> PathBuf {
     let mut path = env::var_os("APPDATA")
         .map(PathBuf::from)
@@ -38,7 +39,7 @@ fn open_setting(){
     // 子プロセスの終了を待つ（必要なら）
     let status = child.wait().expect("プロセス待機中にエラー");
     println!("GUIプロセス終了: {:?}", status);
-}
+}*/
 
 #[tokio::main]
 async fn main(){/*

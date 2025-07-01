@@ -266,15 +266,22 @@ pub async fn remote_main() -> Result<(), Box<dyn std::error::Error>> {
                     }else if first_two == "mm" {
                         let parts: Vec<&str> = no_first.split(',').collect();
                         let part_x: &&str = parts.get(0).unwrap_or(&"0");
-                        let part_y = parts.get(1).unwrap_or(&"0");
+                        let part_y: &&str = parts.get(1).unwrap_or(&"0");
                         let part_x_int: i32 = part_x.parse::<i32>().unwrap() * 3;
                         let part_y_int: i32 = part_y.parse::<i32>().unwrap() * 3;
                         enigo.mouse_move_relative(part_x_int, part_y_int);
+                    }else if first_two == "mp"{
+                            let parts: Vec<&str> = no_first.split(',').collect();
+                            let part_x = parts.get(0).copied().unwrap_or("0");
+                            let part_y = parts.get(1).copied().unwrap_or("0");
+                            let part_x_int = part_x.parse::<f64>().unwrap_or(0.0) as i32;
+                            let part_y_int = part_y.parse::<f64>().unwrap_or(0.0) as i32;
+                            enigo.mouse_move_to(part_x_int, part_y_int);
                     }else if first_two == "md"{
                         enigo.mouse_down(MouseButton::Left);
                         let parts: Vec<&str> = no_first.split(',').collect();
-                        let part_x = parts.get(0).unwrap_or(&"0");
-                        let part_y = parts.get(1).unwrap_or(&"0");
+                        let part_x: &&str = parts.get(0).unwrap_or(&"0");
+                        let part_y: &&str = parts.get(1).unwrap_or(&"0");
                         let part_x_int: i32 = part_x.parse::<i32>().unwrap() * 3;
                         let part_y_int: i32 = part_y.parse::<i32>().unwrap() * 3;
                         enigo.mouse_move_relative(part_x_int, part_y_int);

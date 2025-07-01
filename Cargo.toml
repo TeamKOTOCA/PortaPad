@@ -3,7 +3,7 @@ name = "PortaPad"
 version = "0.1.0"
 edition = "2024"
 description = "ニッチで便利なインプット。"
-license = "Proprietary"
+license = "CC-BY-SA-4.0"
 
 [dependencies]
 enigo        = "0.1"

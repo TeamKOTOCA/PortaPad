@@ -28,6 +28,17 @@ egui = "0.31.1"
 egui_extras = { version = "0.31.1", features = ["all_loaders"] }
 winapi = "0.3.9"
 
+[dependencies]
+windows = { version = "0.56", features = [
+    "Win32_UI_WindowsAndMessaging",
+    "Win32_UI_Input_KeyboardAndMouse",
+    "Win32_UI_Input_RawInput",
+    "Win32_Foundation",
+] }
+
+[[bin]]
+name = "Portapad"
+path = "src/main.rs"
 [[bin]]
 name = "setting"
 path = "setting/main.rs"

@@ -1,4 +1,4 @@
-#![windows_subsystem = "windows"]
+//#![windows_subsystem = "windows"]
 mod remote;
 use tokio;
 use serde::Deserialize;
@@ -16,7 +16,7 @@ struct ServerConfig {
     host: String,
     port: u16,
 }
-/*
+
 fn get_config_path() -> PathBuf {
     let mut path = env::var_os("APPDATA")
         .map(PathBuf::from)
@@ -30,7 +30,7 @@ fn get_config_path() -> PathBuf {
 
 fn open_setting(){
         // GUIサブプロセスを起動
-    let mut child = Command::new("target/debug/gui_app") 
+    let mut child = Command::new("target/debug/setting.exe") 
         .spawn()
         .expect("設定画面起動失敗");
 
@@ -39,19 +39,19 @@ fn open_setting(){
     // 子プロセスの終了を待つ（必要なら）
     let status = child.wait().expect("プロセス待機中にエラー");
     println!("GUIプロセス終了: {:?}", status);
-}*/
+}
 
 #[tokio::main]
-async fn main(){/*
+async fn main(){
     let config_path = get_config_path();
     if !config_path.exists() {
-        //open_setting();
+        open_setting();
     }
     let config_str = fs::read_to_string(&config_path)
         .expect("読み込み失敗");
     let config: Config = toml::from_str(&config_str)
         .expect("TOMLエラー");
-    println!("{:?}", config);*/
+    println!("{:?}", config);
     loop {
         if let Err(e) = remote::remote_main().await {
             eprintln!("remote_mainが終了しました: {:?}", e);

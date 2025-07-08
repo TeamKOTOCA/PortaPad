@@ -1,0 +1,120 @@
+use std::collections::VecDeque;
+use std::fs::File;
+use std::io::Write;
+use std::mem::{size_of, zeroed};
+use std::ptr::null_mut;
+use std::ffi::CString;
+use windows::Win32::Foundation::*;
+use windows::Win32::System::LibraryLoader::*;
+use windows::Win32::UI::Input::*;
+use windows::Win32::UI::WindowsAndMessaging::*;
+use windows::core::PCSTR;
+use chrono::Local;
+use windows::Win32::Graphics::Gdi::UpdateWindow;
+
+const CLASS_NAME: &str = "RawInputWindow";
+
+fn main() {
+    unsafe {
+        let h_instance: HINSTANCE = GetModuleHandleA(None).unwrap().into();
+
+        let class_name_c = CString::new(CLASS_NAME).unwrap();
+        let window_name_c = CString::new("Portapad_inputter").unwrap();
+
+        let wc = WNDCLASSA {
+            hInstance: h_instance,
+            lpszClassName: PCSTR(class_name_c.as_ptr() as _),
+            lpfnWndProc: Some(wnd_proc),
+            ..zeroed()
+        };
+        RegisterClassA(&wc);
+
+        let hwnd = CreateWindowExA(
+            WINDOW_EX_STYLE::default(),
+            PCSTR(class_name_c.as_ptr() as _),
+            PCSTR(window_name_c.as_ptr() as _),
+            WS_OVERLAPPEDWINDOW,
+            CW_USEDEFAULT,
+            CW_USEDEFAULT,
+            CW_USEDEFAULT,
+            CW_USEDEFAULT,
+            Some(HWND(null_mut())),
+            Some(HMENU(null_mut())),
+            Some(h_instance),
+            Some(std::ptr::null_mut::<std::ffi::c_void>()),
+        )
+        .expect("Failed to create window");
+
+        ShowWindow(hwnd, SW_SHOW);
+        UpdateWindow(hwnd);
+
+        let mut msg = MSG::default();
+        while GetMessageA(&mut msg, Some(HWND(null_mut())), 0, 0).into() {
+            TranslateMessage(&msg);
+            DispatchMessageA(&msg);
+        }
+    }
+}
+
+static mut PRESS_LOG: Option<VecDeque<(String, String)>> = None;
+
+extern "system" fn wnd_proc(hwnd: HWND, msg: u32, wparam: WPARAM, lparam: LPARAM) -> LRESULT {
+    unsafe {
+        println!("{}", msg);
+        //256,257,258 がキーボードのイベント
+        match msg {
+            WM_CREATE => {
+                PRESS_LOG = Some(VecDeque::with_capacity(3));
+            }
+            256 => {
+                let mut size = 0u32;
+                GetRawInputData(
+                    HRAWINPUT(lparam.0 as *mut _),
+                    RID_INPUT,
+                    None,
+                    &mut size,
+                    size_of::<RAWINPUTHEADER>() as u32,
+                );
+
+                let mut buf = vec![0u8; size as usize];
+                GetRawInputData(
+                    HRAWINPUT(lparam.0 as *mut _),
+                    RID_INPUT,
+                    Some(buf.as_mut_ptr() as *mut _),
+                    &mut size,
+                    size_of::<RAWINPUTHEADER>() as u32,
+                );
+
+                let raw = &*(buf.as_ptr() as *const RAWINPUT);
+                if raw.header.dwType == RIM_TYPEKEYBOARD.0 {
+                    let device_handle = raw.header.hDevice;
+                    let timestamp = Local::now().format("%Y-%m-%d %H:%M:%S%.3f").to_string();
+                    let hid_str = format!("{:?}", device_handle);
+
+                    if let Some(ref mut log) = PRESS_LOG {
+                        log.push_back((hid_str, timestamp));
+
+                        if log.len() >= 3 {
+                            let _ = save_to_file(log);
+                            log.clear();
+                        }
+                    }
+                }
+            }
+            WM_DESTROY => {
+                PostQuitMessage(0);
+            }
+            _ => {}
+        }
+        DefWindowProcA(hwnd, msg, wparam, lparam)
+    }
+}
+
+fn save_to_file(log: &VecDeque<(String, String)>) -> std::io::Result<()> {
+    println!("writen");
+    let mut file = File::create("key_input_log.txt")?;
+    for (hid, timestamp) in log {
+        writeln!(file, "{} {}", timestamp, hid)?;
+    }
+    Ok(())
+}

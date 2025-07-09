@@ -1,8 +1,3 @@
-/*
-    rawinputでデバイス名を取得して、三つたまったらファイルに保存するコード
- */
-
-
 use std::collections::VecDeque;
 use std::fs::File;
 use std::io::Write;
@@ -118,9 +113,10 @@ extern "system" fn wnd_proc(hwnd: HWND, msg: u32, wparam: WPARAM, lparam: LPARAM
                     if let Some(ref mut log) = PRESS_LOG {
                         log.push_back((hid_str, timestamp));
 
-                        if log.len() >= 3 {
+                        if log.len() >= 1 {
                             let _ = save_to_file(log);
                             log.clear();
+                            PostQuitMessage(0);
                         }
                     }
                 }

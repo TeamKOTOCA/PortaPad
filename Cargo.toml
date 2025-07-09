@@ -44,6 +44,10 @@ name = "setting"
 path = "setting/main.rs"
 
 [[bin]]
+name = "setting_forkey"
+path = "setting_forkey/main.rs"
+
+[[bin]]
 name = "test"
 path = "test/main.rs"
 

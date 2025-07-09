@@ -12,7 +12,7 @@ use windows::core::PCSTR;
 use chrono::Local;
 use windows::Win32::Graphics::Gdi::UpdateWindow;
 
-const CLASS_NAME: &str = "RawInputWindow";
+const CLASS_NAME: &str = "Portapad_inputter";
 
 fn main() {
     unsafe {
@@ -96,7 +96,6 @@ extern "system" fn wnd_proc(hwnd: HWND, msg: u32, wparam: WPARAM, lparam: LPARAM
                 if raw.header.dwType == RIM_TYPEKEYBOARD.0 {
                     let device_handle = raw.header.hDevice;
                     let timestamp = Local::now().format("%Y-%m-%d %H:%M:%S%.3f").to_string();
-                    let hid_str = format!("{:?}", device_handle);
 
                     // まずバッファサイズを取得
                     let mut size = 0u32;
@@ -107,11 +106,12 @@ extern "system" fn wnd_proc(hwnd: HWND, msg: u32, wparam: WPARAM, lparam: LPARAM
                     GetRawInputDeviceInfoA(Some(device_handle), RIDI_DEVICENAME, Some(buffer.as_mut_ptr() as _), &mut size);
 
                     let device_name = String::from_utf8_lossy(&buffer);
+                    let devname_str = device_name.trim_end_matches(&['\0', '\r', '\n'][..]).to_string();
                     println!("{}", device_name);
 
 
                     if let Some(ref mut log) = PRESS_LOG {
-                        log.push_back((hid_str, timestamp));
+                        log.push_back((devname_str, timestamp));
 
                         if log.len() >= 1 {
                             let _ = save_to_file(log);

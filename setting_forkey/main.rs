@@ -132,7 +132,7 @@ extern "system" fn wnd_proc(hwnd: HWND, msg: u32, wparam: WPARAM, lparam: LPARAM
 
 fn save_to_file(log: &VecDeque<(String, String)>) -> std::io::Result<()> {
     println!("writen");
-    let mut file = File::create("key_input_log.txt")?;
+    let mut file = File::create("input_key_num.txt")?;
     for (hid, timestamp) in log {
         writeln!(file, "{} {}", timestamp, hid)?;
     }

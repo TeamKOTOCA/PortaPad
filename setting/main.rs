@@ -4,6 +4,7 @@
 )]
 use eframe::{egui::*, NativeOptions};
 use eframe::egui;
+use std::process::Command;
 use futures_util::future::ok;
 use std::collections::BTreeMap;
 //mod keyboard;
@@ -40,6 +41,7 @@ fn setup_custom_fonts(ctx: &egui::Context) {
 #[derive(Default, Clone)]
 pub struct MyApp {
     pub sig_url: String,
+    is_recording: bool,
 }
 
 const RUST_LOGO: egui::ImageSource = egui::include_image!("portapad.webp");
@@ -57,7 +59,15 @@ impl eframe::App for MyApp {
             ui.horizontal(|ui| {
                 ui.label("ボタンを押した後、登録したいキーボードのキーを押してください：");
                 if ui.button("記録").clicked() {
-                    
+                        let mut child = Command::new("target/debug/setting_forkey.exe") 
+                            .spawn()
+                            .expect("rawinputプロセス起動失敗");
+
+                        println!("rawinputプロセス起動しました");
+
+                        // 子プロセスの終了を待つ（必要なら）
+                        let status = child.wait().expect("プロセス待機中にエラー");
+                        println!("rawinputプロセス起動おわり");
                 }
             });
 

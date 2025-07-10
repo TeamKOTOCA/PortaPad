@@ -134,7 +134,7 @@ fn save_to_file(log: &VecDeque<(String, String)>) -> std::io::Result<()> {
     println!("writen");
     let mut file = File::create("input_key_num.txt")?;
     for (hid, timestamp) in log {
-        writeln!(file, "{} {}", timestamp, hid)?;
+        writeln!(file, "{}", hid)?;
     }
     Ok(())
 }

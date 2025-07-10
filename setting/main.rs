@@ -7,7 +7,9 @@ use eframe::egui;
 use std::process::Command;
 use futures_util::future::ok;
 use std::collections::BTreeMap;
-//mod keyboard;
+use std::thread;
+use std::fs;
+use std::sync::{Arc, Mutex};
 
 fn setup_custom_fonts(ctx: &egui::Context) {
     let mut fonts = egui::FontDefinitions::default();
@@ -58,19 +60,44 @@ impl eframe::App for MyApp {
             ui.heading("シグナリングサーバー");
             ui.horizontal(|ui| {
                 ui.label("ボタンを押した後、登録したいキーボードのキーを押してください：");
-                if ui.button("記録").clicked() {
-                        let mut child = Command::new("target/debug/setting_forkey.exe") 
-                            .spawn()
-                            .expect("rawinputプロセス起動失敗");
+                let recording_text;
+                if self.is_recording {recording_text = "記録中...";}else{recording_text = "記録"}
+                if ui.button(recording_text).clicked() {
+                    self.is_recording = true;
+                    ctx.request_repaint();
 
-                        println!("rawinputプロセス起動しました");
+                    let mut child = Command::new("target/debug/setting_forkey.exe") 
+                        .spawn()
+                        .expect("rawinputプロセス起動失敗");
 
-                        // 子プロセスの終了を待つ（必要なら）
-                        let status = child.wait().expect("プロセス待機中にエラー");
-                        println!("rawinputプロセス起動おわり");
+                    println!("rawinputプロセス起動しました");
+                    // 子プロセスの終了を待つ（必要なら）
+                    let status = child.wait().expect("プロセス待機中にエラー");
+                    println!("rawinputプロセス起動おわり");
+                    let path = "input_key_num.txt";
+                    match fs::read_to_string(path) {
+                        Ok(contents) => {
+                            println!("ファイルの内容:\n{}", contents);
+                        }
+                        Err(e) => {
+                            eprintln!("エラー: {}", e);
+                        }
+                    }
+                    self.is_recording = false;
+                    ctx.request_repaint();
                 }
             });
-
+            let path = "input_key_num.txt";
+            let mut keypath = "未記録".to_string();
+            match fs::read_to_string(path) {
+                Ok(contents) => {
+                    keypath = contents;
+                }
+                Err(e) => {
+                    eprintln!("エラー: {}", e);
+                }
+            }
+            ui.label(egui::RichText::new(keypath).small());
 
             ui.separator();
         });

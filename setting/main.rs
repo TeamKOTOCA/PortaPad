@@ -10,6 +10,31 @@ use std::collections::BTreeMap;
 use std::thread;
 use std::fs;
 use std::sync::{Arc, Mutex};
+use once_cell::sync::Lazy;
+use std::path::PathBuf;
+use serde::Deserialize;
+use serde::Serialize;
+
+//設定ファイルの形式
+#[derive(Deserialize, Serialize, Debug, Default)]
+struct Config {
+    sigserver: String,
+    sec_sigserver: String,
+    keyboard: String,
+}
+
+//APPDATAフォルダーのPORTAPADフォルダーを表す変数
+pub static APPDATA: Lazy<PathBuf> = Lazy::new(|| {
+    //C:\Users\<ユーザー名>\AppData\Roaming
+    let base_dir = dirs::config_dir().expect("APPDATAが取得できませんでした");
+    // Portapadフォルダ
+    let app_dir = base_dir.join("Portapad");
+    //なければ作る
+    fs::create_dir_all(&app_dir).expect("Portapadフォルダが作れませんでした");
+    dirs::config_dir()
+        .expect("APPDATAが取得できませんでした")
+        .join("portapad")
+});
 
 fn setup_custom_fonts(ctx: &egui::Context) {
     let mut fonts = egui::FontDefinitions::default();
@@ -43,10 +68,10 @@ fn setup_custom_fonts(ctx: &egui::Context) {
 #[derive(Default, Clone)]
 pub struct MyApp {
     pub sig_url: String,
+    pub sig_url_sec: String,
+    pub key_devicename: String,
     is_recording: bool,
 }
-
-const RUST_LOGO: egui::ImageSource = egui::include_image!("portapad.webp");
 
 impl eframe::App for MyApp {
     fn update(&mut self, ctx: &Context, frame: &mut eframe::Frame) {
@@ -56,8 +81,14 @@ impl eframe::App for MyApp {
                 ui.label("シグナリングサーバーURL：");
                 ui.text_edit_singleline(&mut self.sig_url);
             });
+            ui.horizontal(|ui| {
+                ui.label("バックアップ用シグナリングサーバーURL：");
+                ui.text_edit_singleline(&mut self.sig_url_sec);
+            });
 
-            ui.heading("シグナリングサーバー");
+            ui.separator();
+
+            ui.heading("キーボード登録");
             ui.horizontal(|ui| {
                 ui.label("ボタンを押した後、登録したいキーボードのキーを押してください：");
                 let recording_text;
@@ -71,13 +102,14 @@ impl eframe::App for MyApp {
                         .expect("rawinputプロセス起動失敗");
 
                     println!("rawinputプロセス起動しました");
-                    // 子プロセスの終了を待つ（必要なら）
+                    // 子プロセスの終了を待つ
                     let status = child.wait().expect("プロセス待機中にエラー");
                     println!("rawinputプロセス起動おわり");
-                    let path = "input_key_num.txt";
+                    let path = APPDATA.join("input_key_num.txt");
                     match fs::read_to_string(path) {
                         Ok(contents) => {
-                            println!("ファイルの内容:\n{}", contents);
+                            println!("コード:\n{}", contents);
+                            self.key_devicename = contents.trim().to_string();
                         }
                         Err(e) => {
                             eprintln!("エラー: {}", e);
@@ -87,14 +119,13 @@ impl eframe::App for MyApp {
                     ctx.request_repaint();
                 }
             });
-            let path = "input_key_num.txt";
+            let path = APPDATA.join("input_key_num.txt");
             let mut keypath = "未記録".to_string();
             match fs::read_to_string(path) {
                 Ok(contents) => {
                     keypath = contents;
                 }
                 Err(e) => {
-                    eprintln!("エラー: {}", e);
                 }
             }
             ui.label(egui::RichText::new(keypath).small());
@@ -104,19 +135,41 @@ impl eframe::App for MyApp {
 
         egui::TopBottomPanel::bottom("bottom_panel").show(ctx, |ui| {
             ui.horizontal(|ui| {
-                ui.label("Portapad v1.2.1");
+                ui.label("Portapad v2.1.1");
 
                 ui.with_layout(
-                    egui::Layout::right_to_left(egui::Align::Center), // ← 右寄せ
+                    egui::Layout::right_to_left(egui::Align::Center),
                     |ui| {
-                        if ui.button("適用").clicked() {
-                            println!("シグナリングサーバー：{}", self.sig_url);
-                        }
                         if ui.button("キャンセル").clicked() {
                             std::process::exit(0);
                         }
                         if ui.button("保存").clicked() {
-                            println!("シグナリングサーバー：{}", self.sig_url);
+
+                            let mut config: Config = match fs::read_to_string(&APPDATA.join("config.toml")) {
+                                Ok(toml_str) => {
+                                    toml::from_str(&toml_str).unwrap_or_else(|e| {
+                                        eprintln!("TOMLの読み込みに失敗: {}", e);
+                                        Config::default()
+                                    })
+                                }
+                                Err(_) => {
+                                    eprintln!("ない。新規作成します。");
+                                    let default_config = Config::default();
+
+                                    // TOMLに変換して保存
+                                    let toml_str = toml::to_string_pretty(&default_config).unwrap();
+                                    fs::write(&APPDATA.join("config.toml"), toml_str);
+                                    default_config
+                                }
+                            };
+                            
+                            if !self.sig_url.is_empty() { config.sigserver = self.sig_url.to_string(); };
+                            if !self.sig_url_sec.is_empty() { config.sec_sigserver = self.sig_url_sec.to_string(); };
+                            if !self.key_devicename.is_empty() { config.keyboard = self.key_devicename.to_string(); };
+
+                            let new_toml = toml::to_string_pretty(&config).unwrap();
+                            fs::write(&APPDATA.join("config.toml"), new_toml);
+                            std::process::exit(0);
                         }
                     },
                 );

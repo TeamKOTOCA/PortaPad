@@ -1,5 +1,6 @@
 use std::collections::VecDeque;
 use std::fs::File;
+use std::fs;
 use std::io::Write;
 use std::mem::{size_of, zeroed};
 use std::ptr::null_mut;
@@ -132,7 +133,14 @@ extern "system" fn wnd_proc(hwnd: HWND, msg: u32, wparam: WPARAM, lparam: LPARAM
 
 fn save_to_file(log: &VecDeque<(String, String)>) -> std::io::Result<()> {
     println!("writen");
-    let mut file = File::create("input_key_num.txt")?;
+    //C:\Users\<ユーザー名>\AppData\Roaming
+    let base_dir = dirs::config_dir().expect("APPDATAが取得できませんでした");
+    // Portapadフォルダ
+    let app_dir = base_dir.join("Portapad");
+    //なければ作る
+    fs::create_dir_all(&app_dir).expect("Portapadフォルダが作れませんでした");
+    
+    let mut file = File::create(app_dir.join("input_key_num.txt"))?;
     for (hid, timestamp) in log {
         writeln!(file, "{}", hid)?;
     }

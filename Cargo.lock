@@ -13,6 +13,7 @@ dependencies = [
  "egui_extras",
  "enigo",
  "futures-util",
+ "lazy_static",
  "log",
  "notify-rust",
  "once_cell",

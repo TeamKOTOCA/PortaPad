@@ -1,144 +1,62 @@
-/*
-    rawinputでデバイス名を取得して、三つたまったらファイルに保存するコード
- */
-
-
-use std::collections::VecDeque;
-use std::fs::File;
-use std::io::Write;
-use std::mem::{size_of, zeroed};
 use std::ptr::null_mut;
-use std::ffi::CString;
+use std::thread;
+use std::sync::Mutex;
+use std::time::Duration;
 use windows::Win32::Foundation::*;
-use windows::Win32::System::LibraryLoader::*;
-use windows::Win32::UI::Input::*;
 use windows::Win32::UI::WindowsAndMessaging::*;
-use windows::core::PCSTR;
-use chrono::Local;
-use windows::Win32::Graphics::Gdi::UpdateWindow;
+use windows::Win32::UI::WindowsAndMessaging::CallNextHookEx;
+use windows::Win32::UI::WindowsAndMessaging::HC_ACTION;
+use windows::Win32::System::LibraryLoader::GetModuleHandleW;
 
-const CLASS_NAME: &str = "RawInputWindow";
+// グローバル変数（スレッド間で安全に使う）
+static mut HOOK_HANDLE: HHOOK = HHOOK(null_mut());
+
+// キーボードフックコールバック
+unsafe extern "system" fn keyboard_proc(code: i32, wparam: WPARAM, lparam: LPARAM) -> LRESULT {
+    if code == HC_ACTION as i32 {
+        let kbd_struct = *(lparam.0 as *const KBDLLHOOKSTRUCT);
+
+        // キーが押されたとき
+        if wparam.0 as u32 == WM_KEYDOWN {
+            let vk_code = kbd_struct.vkCode;
+            if vk_code == 0x41 { // 'A'キーを止める
+                println!("Aキーを黙殺！");
+                return LRESULT(1); // イベントを止める
+            }
+            println!("キーコード: {}", vk_code);
+        }
+    }
+
+    // 次のフックに処理を渡す
+    CallNextHookEx(None, code as i32, wparam, lparam)
+}
 
 fn main() {
     unsafe {
-        let h_instance: HINSTANCE = GetModuleHandleA(None).unwrap().into();
+        // 現在のプロセスのモジュールハンドルを取得
+        let h_instance = GetModuleHandleW(None).unwrap().into();
 
-        let class_name_c = CString::new(CLASS_NAME).unwrap();
-        let window_name_c = CString::new("Portapad_inputter").unwrap();
-
-        let wc = WNDCLASSA {
-            hInstance: h_instance,
-            lpszClassName: PCSTR(class_name_c.as_ptr() as _),
-            lpfnWndProc: Some(wnd_proc),
-            ..zeroed()
+        // キーボードフックをセット
+        let hook = SetWindowsHookExW(WH_KEYBOARD_LL, Some(keyboard_proc), Some(h_instance), 0);
+        match hook {
+            Ok(h) => h,
+            Err(e) => {
+                eprintln!("SetWindowsHookExW に失敗しました。");
+                return;
+            }
         };
-        RegisterClassA(&wc);
+        HOOK_HANDLE = hook.unwrap();
 
-        let hwnd = CreateWindowExA(
-            WINDOW_EX_STYLE::default(),
-            PCSTR(class_name_c.as_ptr() as _),
-            PCSTR(window_name_c.as_ptr() as _),
-            WS_OVERLAPPEDWINDOW & !WS_VISIBLE,
-            0,
-            0,
-            0,
-            0,
-            Some(HWND(null_mut())),
-            Some(HMENU(null_mut())),
-            Some(h_instance),
-            Some(std::ptr::null_mut::<std::ffi::c_void>()),
-        )
-        .expect("Failed to create window");
-        UpdateWindow(hwnd);
+        println!("キーボードフック開始中...");
 
+        // メッセージループ
         let mut msg = MSG::default();
-        while GetMessageA(&mut msg, Some(HWND(null_mut())), 0, 0).into() {
+        while GetMessageW(&mut msg, Some(HWND(null_mut())), 0, 0).into() {
             TranslateMessage(&msg);
-            DispatchMessageA(&msg);
+            DispatchMessageW(&msg);
         }
+
+        // 終了時にフックを解除
+        UnhookWindowsHookEx(HOOK_HANDLE);
     }
-}
-
-static mut PRESS_LOG: Option<VecDeque<(String, String)>> = None;
-
-extern "system" fn wnd_proc(hwnd: HWND, msg: u32, wparam: WPARAM, lparam: LPARAM) -> LRESULT {
-    unsafe {
-        println!("{}", msg);
-        //256,257,258 がキーボードのイベント
-        match msg {
-            WM_CREATE => {
-                PRESS_LOG = Some(VecDeque::with_capacity(3));
-                let rid = [RAWINPUTDEVICE {
-                    usUsagePage: 0x01,
-                    usUsage: 0x06,     // Keyboard
-                    dwFlags: RIDEV_INPUTSINK, // ウィンドウがフォーカスを失っても入力を受け取る
-                    hwndTarget: hwnd, // イベント受け取り先
-                }];
-
-                let result = RegisterRawInputDevices(&rid, std::mem::size_of::<RAWINPUTDEVICE>() as u32);
-
-            }
-            WM_INPUT => {
-                let mut size = 0u32;
-                GetRawInputData(
-                    HRAWINPUT(lparam.0 as *mut _),
-                    RID_INPUT,
-                    None,
-                    &mut size,
-                    size_of::<RAWINPUTHEADER>() as u32,
-                );
-
-                let mut buf = vec![0u8; size as usize];
-                GetRawInputData(
-                    HRAWINPUT(lparam.0 as *mut _),
-                    RID_INPUT,
-                    Some(buf.as_mut_ptr() as *mut _),
-                    &mut size,
-                    size_of::<RAWINPUTHEADER>() as u32,
-                );
-
-                let raw = &*(buf.as_ptr() as *const RAWINPUT);
-                if raw.header.dwType == RIM_TYPEKEYBOARD.0 {
-                    let device_handle = raw.header.hDevice;
-                    let timestamp = Local::now().format("%Y-%m-%d %H:%M:%S%.3f").to_string();
-                    let hid_str = format!("{:?}", device_handle);
-
-                    // まずバッファサイズを取得
-                    let mut size = 0u32;
-                    GetRawInputDeviceInfoA(Some(device_handle), RIDI_DEVICENAME, None, &mut size);
-
-                    // デバイス名取得
-                    let mut buffer = vec![0u8; size as usize];
-                    GetRawInputDeviceInfoA(Some(device_handle), RIDI_DEVICENAME, Some(buffer.as_mut_ptr() as _), &mut size);
-
-                    let device_name = String::from_utf8_lossy(&buffer);
-                    println!("{}", device_name);
-
-
-                    if let Some(ref mut log) = PRESS_LOG {
-                        log.push_back((hid_str, timestamp));
-
-                        if log.len() >= 3 {
-                            let _ = save_to_file(log);
-                            log.clear();
-                        }
-                    }
-                }
-            }
-            WM_DESTROY => {
-                PostQuitMessage(0);
-            }
-            _ => {}
-        }
-        DefWindowProcA(hwnd, msg, wparam, lparam)
-    }
-}
-
-fn save_to_file(log: &VecDeque<(String, String)>) -> std::io::Result<()> {
-    println!("writen");
-    let mut file = File::create("key_input_log.txt")?;
-    for (hid, timestamp) in log {
-        writeln!(file, "{} {}", timestamp, hid)?;
-    }
-    Ok(())
 }

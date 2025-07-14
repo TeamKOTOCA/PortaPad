@@ -27,12 +27,15 @@ egui_extras = { version = "0.31.1", features = ["all_loaders"] }
 winapi = "0.3.9"
 chrono = "0.4"
 dirs = "6.0.0"
+lazy_static = "1.4.0"
 windows = { version = "0.61.3", features = [
     "Win32_Foundation",
     "Win32_UI_Input",
     "Win32_UI_WindowsAndMessaging",
     "Win32_System_LibraryLoader",
     "Win32_Graphics_Gdi",
+    "Win32_Storage_FileSystem",
+    "Win32_Security"
 ]}
 
 

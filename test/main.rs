@@ -35,8 +35,12 @@ pub static KEYBOARD_PATH: Lazy<String> = Lazy::new(|| {
     handle
 });
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct KeyHandle(pub HANDLE);
+unsafe impl Send for KeyHandle {}
+unsafe impl Sync for KeyHandle {}
 
-pub static KEYBOARD_HANDLE: Lazy<Mutex<Option<HANDLE>>> = Lazy::new(|| {
+pub static KEYBOARD_HANDLE: Lazy<Mutex<Option<KeyHandle>>> = Lazy::new(|| {
     let handle = unsafe {
         let mut count: u32 = 0;
         if GetRawInputDeviceList(
@@ -58,11 +62,15 @@ pub static KEYBOARD_HANDLE: Lazy<Mutex<Option<HANDLE>>> = Lazy::new(|| {
 
         for dev in list {
             let mut name_len: u32 = 0;
-            GetRawInputDeviceInfoA(None, RIDI_DEVICENAME, None, &mut name_len);
+            GetRawInputDeviceInfoA(
+                Some(dev.hDevice),
+                RIDI_DEVICENAME, 
+                None, 
+                &mut name_len);
 
             let mut name_buf = vec![0u8; name_len as usize];
             if GetRawInputDeviceInfoA(
-                None,
+                Some(dev.hDevice),
                 RIDI_DEVICENAME,
                 Some(name_buf.as_mut_ptr() as *mut _),
                 &mut name_len,
@@ -71,7 +79,7 @@ pub static KEYBOARD_HANDLE: Lazy<Mutex<Option<HANDLE>>> = Lazy::new(|| {
                     .trim_end_matches('\0')
                     .to_string();
                 if name.contains(KEYBOARD_PATH.as_str()) {
-                    return Mutex::new(Some(dev.hDevice));
+                    return Mutex::new(Some(KeyHandle(dev.hDevice)));
                 }
             }
         }
@@ -99,7 +107,6 @@ extern "system" fn wnd_proc(hwnd: HWND, msg: u32, wparam: WPARAM, lparam: LPARAM
                     hwndTarget: hwnd, // イベント受け取り先
                 }];
 
-
                 unsafe {
                     RegisterRawInputDevices(&rid, rid.len() as u32)
                         .expect("RawInput登録失敗");
@@ -112,10 +119,13 @@ extern "system" fn wnd_proc(hwnd: HWND, msg: u32, wparam: WPARAM, lparam: LPARAM
                 let mut buffer = vec![0u8; size as usize];
                 GetRawInputData(HRAWINPUT(lparam.0 as *mut _), RID_INPUT, Some(buffer.as_mut_ptr() as *mut _), &mut size, std::mem::size_of::<RAWINPUTHEADER>() as u32);
 
-                let raw: &RAWINPUT = &*(buffer.as_ptr() as *const RAWINPUT);
+
+                let a = KEYBOARD_HANDLE.lock().unwrap();
+
+                /*let raw: &RAWINPUT = &*(buffer.as_ptr() as *const RAWINPUT);
                 if raw.header.dwType == RIM_TYPEKEYBOARD.0 {
                     let dev = raw.header.hDevice;
-                    if ALLOWED_DEVICES.contains(&dev) {
+                    if KEYBOARD_HANDLE == dev {
                         let data = unsafe { raw.data.keyboard() };
                         let flags = if data.Flags & RI_KEY_BREAK != 0 {
                             KEYEVENTF_KEYUP
@@ -141,7 +151,7 @@ extern "system" fn wnd_proc(hwnd: HWND, msg: u32, wparam: WPARAM, lparam: LPARAM
                         }
                     }
                 }
-                LRESULT(0)
+                LRESULT(0)*/
             }
             WM_DESTROY => {
                 PostQuitMessage(0);

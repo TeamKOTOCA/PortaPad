@@ -3,7 +3,6 @@ use egui::mutex::Mutex;
 use windows::Win32::Foundation::*;
 use windows::Win32::Foundation::HANDLE;
 use windows::Win32::UI::WindowsAndMessaging::*;
-
 use std::collections::VecDeque;
 use std::mem::{size_of, zeroed};
 use std::ffi::CString;
@@ -11,10 +10,9 @@ use windows::Win32::System::LibraryLoader::*;
 use windows::Win32::UI::Input::*;
 use windows::core::PCSTR;
 use windows::Win32::Graphics::Gdi::UpdateWindow;
-
+use windows::Win32::UI::Input::KeyboardAndMouse::{SendInput, INPUT, INPUT_KEYBOARD, KEYEVENTF_KEYUP, KEYBDINPUT, INPUT_0, VIRTUAL_KEY};
 use once_cell::sync::Lazy;
 use std::fs;
-
 use std::sync::mpsc::{Sender, Receiver, channel};
 
 
@@ -108,10 +106,10 @@ extern "system" fn wnd_proc(hwnd: HWND, msg: u32, wparam: WPARAM, lparam: LPARAM
                 }];
 
                 unsafe {
-                    RegisterRawInputDevices(&rid, rid.len() as u32)
+                    RegisterRawInputDevices(&rid,  std::mem::size_of::<RAWINPUTDEVICE>() as u32)
                         .expect("RawInput登録失敗");
                 }
-
+                return LRESULT(0)
             }
             WM_INPUT => {
                 let mut size = 0;
@@ -120,24 +118,25 @@ extern "system" fn wnd_proc(hwnd: HWND, msg: u32, wparam: WPARAM, lparam: LPARAM
                 GetRawInputData(HRAWINPUT(lparam.0 as *mut _), RID_INPUT, Some(buffer.as_mut_ptr() as *mut _), &mut size, std::mem::size_of::<RAWINPUTHEADER>() as u32);
 
 
-                let a = KEYBOARD_HANDLE.lock().unwrap();
+                let mut select_key = KEYBOARD_HANDLE.lock().unwrap();
 
-                /*let raw: &RAWINPUT = &*(buffer.as_ptr() as *const RAWINPUT);
+                let raw: &RAWINPUT = &*(buffer.as_ptr() as *const RAWINPUT);
+                // handle を使って処理
                 if raw.header.dwType == RIM_TYPEKEYBOARD.0 {
                     let dev = raw.header.hDevice;
-                    if KEYBOARD_HANDLE == dev {
-                        let data = unsafe { raw.data.keyboard() };
-                        let flags = if data.Flags & RI_KEY_BREAK != 0 {
+                    if select_key == KeyHandle(dev) {
+                        let data = unsafe { raw.data.keyboard };
+                        let flags = if data.Flags & (RI_KEY_BREAK as u16) != 0 {
                             KEYEVENTF_KEYUP
                         } else {
-                            0
+                            return LRESULT(0);
                         };
 
                         let input = INPUT {
                             r#type: INPUT_KEYBOARD,
                             Anonymous: INPUT_0 {
                                 ki: KEYBDINPUT {
-                                    wVk: data.VKey,
+                                    wVk: VIRTUAL_KEY(data.VKey),
                                     wScan: data.MakeCode,
                                     dwFlags: flags,
                                     time: 0,
@@ -151,12 +150,16 @@ extern "system" fn wnd_proc(hwnd: HWND, msg: u32, wparam: WPARAM, lparam: LPARAM
                         }
                     }
                 }
-                LRESULT(0)*/
+                return LRESULT(1)
             }
             WM_DESTROY => {
                 PostQuitMessage(0);
+                return LRESULT(0)
             }
-            _ => {}
+            _ => {
+                // 何もせずにデフォルトへ
+                return DefWindowProcA(hwnd, msg, wparam, lparam); // ← 最後も LRESULT
+            }
         }
         DefWindowProcA(hwnd, msg, wparam, lparam)
     }

@@ -6,8 +6,8 @@
 
 use eframe::{egui::*, NativeOptions};
 use eframe::egui;
-use std::process::Command;
 use std::fs;
+use std::io; // io::Error を使うために必要
 use once_cell::sync::Lazy;
 use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
@@ -37,23 +37,15 @@ fn setup_custom_fonts(ctx: &egui::Context) {
 }
 
 #[derive(PartialEq, Clone, Default)]
-enum AppScreen {
-    #[default]
-    Main,
-    SubWindow,
-}
-
-#[derive(Default, Clone)]
 pub struct MyApp {
     pub sig_url: String,
     pub sig_url_sec: String,
-    pub key_devicename: String,
-    is_recording: bool,
-    current_screen: AppScreen,
+    pub chenged_clients_list: bool,
 }
 
-impl MyApp {
-    fn show_main_ui(&mut self, ctx: &Context) {
+
+impl eframe::App for MyApp {
+    fn update(&mut self, ctx: &Context, _frame: &mut eframe::Frame) {
         CentralPanel::default().show(ctx, |ui| {
             ui.heading("シグナリングサーバー");
             ui.horizontal(|ui| {
@@ -64,36 +56,39 @@ impl MyApp {
                 ui.label("バックアップ用シグナリングサーバーURL：");
                 ui.text_edit_singleline(&mut self.sig_url_sec);
             });
-
             ui.separator();
-            ui.heading("キーボード登録");
-            ui.horizontal(|ui| {
-                ui.label("登録したいキーボードのキーを押してください：");
-                let recording_text = if self.is_recording { "記録中..." } else { "記録" };
-                if ui.button(recording_text).clicked() {
-                    self.is_recording = true;
-                    ctx.request_repaint();
-                    let mut child = Command::new("target/debug/setting_forkey.exe")
-                        .spawn()
-                        .expect("rawinputプロセス起動失敗");
-                    child.wait().expect("プロセス待機中にエラー");
-                    let path = APPDATA.join("input_key_num.txt");
-                    if let Ok(contents) = fs::read_to_string(path) {
-                        self.key_devicename = contents.trim().to_string();
-                    }
-                    self.is_recording = false;
-                    ctx.request_repaint();
-                }
+            ui.heading("許可済みクライアントリスト");
+            egui::ScrollArea::vertical()
+                .auto_shrink([false, false])
+                .hscroll(false) 
+                .show(ui, |ui| {
+                    ui.label("[削除]で許可を取り消します。");
+                    egui::Grid::new("my_grid")
+                    .num_columns(2)
+                    .spacing([40.0, 4.0])
+                    .show(ui, |ui| {
+                        let mut clients: Vec<String> = vec!["クライアントが見つかりませんでした。".to_string()];
+                        match read_lines_from_file(APPDATA.join("clients_list.txt")) {
+                            Ok(lines) => {
+                                if lines.len() >= 1 {
+                                    clients = lines;
+                                }
+                            }
+                            Err(e) => {
+                                eprintln!("ファイルの読み込み中にエラーが発生しました: {}", e);
+                            }
+                        }
+                        for client in &clients {
+                            ui.label(client);
+                            if *client != "クライアントが見つかりませんでした。".to_string() && ui.button("削除").clicked() {
+                                remove_client(client.as_str());
+                            }
+                            ui.end_row();
+                        }
+                    });
             });
-
-            let keypath = fs::read_to_string(APPDATA.join("input_key_num.txt")).unwrap_or("未記録".to_string());
-            ui.label(RichText::new(keypath).small());
-
-            if ui.button("キーボードのマッピングをする").clicked() {
-                self.current_screen = AppScreen::SubWindow;
-            }
-
-            TopBottomPanel::bottom("bottom_panel").show_inside(ui, |ui| {
+        });
+        TopBottomPanel::bottom("bottom_panel").show(ctx, |ui| {
                 ui.horizontal(|ui| {
                     ui.label("Portapad v2.1.1");
                     ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
@@ -111,35 +106,45 @@ impl MyApp {
                             if !self.sig_url_sec.is_empty() {
                                 config.sec_sigserver = self.sig_url_sec.clone();
                             }
-                            if !self.key_devicename.is_empty() {
-                                config.keyboard = self.key_devicename.clone();
-                            }
                             fs::write(APPDATA.join("config.toml"), toml::to_string_pretty(&config).unwrap()).unwrap();
                             std::process::exit(0);
                         }
                     });
                 });
             });
-        });
-    }
-
-    fn show_subwindow_ui(&mut self, ctx: &Context) {
-
-        CentralPanel::default().show(ctx, |ui| {
-            if ui.button("戻る").clicked() {
-                self.current_screen = AppScreen::Main;
-            }
-        });
     }
 }
 
-impl eframe::App for MyApp {
-    fn update(&mut self, ctx: &Context, _frame: &mut eframe::Frame) {
-        match self.current_screen {
-            AppScreen::Main => self.show_main_ui(ctx),
-            AppScreen::SubWindow => self.show_subwindow_ui(ctx),
-        }
-    }
+fn remove_client(client_name: &str){
+    println!("{}", client_name);
+        // 1. ファイルから全ての行を読み込む
+    let content = fs::read_to_string(APPDATA.join("clients_list.txt")).unwrap();
+
+    // 読み込んだ文字列を改行で分割し、可変なVec<String>に収集する
+    let mut lines: Vec<String> = content
+        .lines()
+        .map(|s| s.to_string())
+        .collect();
+
+    // 2. 指定した要素を探して削除する
+    // `retain` メソッドは、クロージャが `true` を返す要素だけを残します。
+    // そのため、削除したい要素と一致しないものだけを残します。
+    let initial_len = lines.len();
+    lines.retain(|line| line != client_name); // `line` は `&String`、`target_element` は `&str` なので比較可能
+
+    // 3. 変更されたリストをファイルに保存する
+    // 各行を改行文字で結合して一つの文字列に戻す
+    let updated_content = lines.join("\n");
+    fs::write(APPDATA.join("clients_list.txt"), updated_content).unwrap(); // ファイルに書き戻す
+}
+
+fn read_lines_from_file(file_path: PathBuf) -> Result<Vec<String>, io::Error> {
+    let content = fs::read_to_string(file_path)?;
+    let lines: Vec<String> = content
+        .lines() // 改行で文字列をイテレータに分割
+        .map(|s| s.to_string()) // 各 &str を所有する String に変換
+        .collect();
+    Ok(lines)
 }
 
 fn main() {

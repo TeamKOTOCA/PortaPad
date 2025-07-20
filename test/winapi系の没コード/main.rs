@@ -1,5 +1,5 @@
 use std::ptr::null_mut;
-use egui::mutex::Mutex;
+use std::sync::Mutex;
 use windows::Win32::Foundation::*;
 use windows::Win32::Foundation::HANDLE;
 use windows::Win32::UI::WindowsAndMessaging::*;
@@ -9,6 +9,7 @@ use std::ffi::CString;
 use windows::Win32::System::LibraryLoader::*;
 use windows::Win32::UI::Input::*;
 use windows::core::PCSTR;
+use windows::Win32::Foundation::COLORREF;
 use windows::Win32::Graphics::Gdi::UpdateWindow;
 use windows::Win32::UI::Input::KeyboardAndMouse::{SendInput, INPUT, INPUT_KEYBOARD, KEYEVENTF_KEYUP, KEYBDINPUT, INPUT_0, VIRTUAL_KEY};
 use once_cell::sync::Lazy;
@@ -88,6 +89,27 @@ pub static KEYBOARD_HANDLE: Lazy<Mutex<Option<KeyHandle>>> = Lazy::new(|| {
     handle
 });
 
+// キーボードフックコールバック
+unsafe extern "system" fn keyboard_proc(code: i32, wparam: WPARAM, lparam: LPARAM) -> LRESULT {
+    if code == HC_ACTION as i32 {
+        return LRESULT(1); // イベントを止め
+        /* let kbd_struct = *(lparam.0 as *const KBDLLHOOKSTRUCT);
+
+        キーが押されたとき
+        if wparam.0 as u32 == WM_KEYDOWN {
+            let vk_code = kbd_struct.vkCode;
+            if vk_code == 0x41 { // 'A'キーを止める
+                println!("Aキーを黙殺！");
+                return LRESULT(1); // イベントを止める
+            }
+            println!("キーコード: {}", vk_code);
+        } */
+    }
+
+    // 次のフックに処理を渡す
+    CallNextHookEx(None, code as i32, wparam, lparam)
+}
+
 
 static mut PRESS_LOG: Option<VecDeque<(String, String)>> = None;
 
@@ -124,7 +146,7 @@ extern "system" fn wnd_proc(hwnd: HWND, msg: u32, wparam: WPARAM, lparam: LPARAM
                 // handle を使って処理
                 if raw.header.dwType == RIM_TYPEKEYBOARD.0 {
                     let dev = raw.header.hDevice;
-                    if select_key == KeyHandle(dev) {
+                    if select_key.as_ref().map(|kh| kh.0) == Some(dev) {
                         let data = unsafe { raw.data.keyboard };
                         let flags = if data.Flags & (RI_KEY_BREAK as u16) != 0 {
                             KEYEVENTF_KEYUP
@@ -169,6 +191,39 @@ extern "system" fn wnd_proc(hwnd: HWND, msg: u32, wparam: WPARAM, lparam: LPARAM
 const CLASS_NAME: &str = "portapadwindow";
 #[tokio::main]
 async fn main() {
+    // Globalhook処理
+    let globalhookroop = tokio::spawn(async {
+        unsafe {
+            // 現在のプロセスのモジュールハンドルを取得
+            let h_instance = GetModuleHandleW(None).unwrap().into();
+
+            // キーボードフックをセット
+            let hook = SetWindowsHookExW(WH_KEYBOARD_LL, Some(keyboard_proc), Some(h_instance), 0);
+            match hook {
+                Ok(h) => h,
+                Err(e) => {
+                    eprintln!("SetWindowsHookExW に失敗しました。");
+                    return;
+                }
+            };
+            HOOK_HANDLE = hook.unwrap();
+
+            println!("キーボードフック開始中...");
+
+            // メッセージループ
+            let mut msg = MSG::default();
+            while GetMessageW(&mut msg, Some(HWND(null_mut())), 0, 0).into() {
+                TranslateMessage(&msg);
+                DispatchMessageW(&msg);
+            }
+
+            // 終了時にフックを解除
+            UnhookWindowsHookEx(HOOK_HANDLE);
+        }
+    });
+
+    // rawinput処理
+    let rawinputroop = tokio::spawn(async {
         unsafe {
             let h_instance: HINSTANCE = GetModuleHandleA(None).unwrap().into();
 
@@ -184,21 +239,21 @@ async fn main() {
             RegisterClassA(&wc);
 
             let hwnd = CreateWindowExA(
-                WINDOW_EX_STYLE::default(),
+                WS_EX_LAYERED | WS_EX_TOOLWINDOW,
                 PCSTR(class_name_c.as_ptr() as _),
                 PCSTR(window_name_c.as_ptr() as _),
-                WS_OVERLAPPEDWINDOW & !WS_VISIBLE,
-                0,
-                0,
-                0,
-                0,
+                WS_POPUP | WS_VISIBLE,
+                -10000, -10000, 1, 1,
                 Some(HWND(null_mut())),
                 Some(HMENU(null_mut())),
                 Some(h_instance),
                 Some(std::ptr::null_mut::<std::ffi::c_void>()),
             )
             .expect("Failed to create window");
+            ShowWindow(hwnd, SW_SHOWMINNOACTIVE); // 最小化かつアクティブにしない
             UpdateWindow(hwnd);
+            SetForegroundWindow(hwnd);
+            
 
             let mut msg = MSG::default();
             while GetMessageA(&mut msg, Some(HWND(null_mut())), 0, 0).into() {
@@ -206,4 +261,7 @@ async fn main() {
                 DispatchMessageA(&msg);
             }
         }
+    });
+    // メインスレッドがすぐ終わらないように待つ
+    let _ = tokio::join!(globalhookroop, rawinputroop);
 }

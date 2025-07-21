@@ -11,6 +11,10 @@ use std::io; // io::Error を使うために必要
 use once_cell::sync::Lazy;
 use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
+use std::process::{Command, Child};
+use std::thread::sleep;
+use std::time::Duration;
+use std::sync::Once;
 
 #[derive(Deserialize, Serialize, Debug, Default)]
 struct Config {
@@ -93,6 +97,10 @@ impl eframe::App for MyApp {
                     ui.label("Portapad v2.1.1");
                     ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                         if ui.button("キャンセル").clicked() {
+                            // Portapadを再起動
+                            let _ = Command::new("C:\\Program Files\\PortaPad\\PortaPad.exe")
+                                .spawn();
+
                             std::process::exit(0);
                         }
                         if ui.button("保存").clicked() {
@@ -107,6 +115,11 @@ impl eframe::App for MyApp {
                                 config.sec_sigserver = self.sig_url_sec.clone();
                             }
                             fs::write(APPDATA.join("config.toml"), toml::to_string_pretty(&config).unwrap()).unwrap();
+                            
+                            // Portapadを再起動
+                            let _ = Command::new("C:\\Program Files\\PortaPad\\PortaPad.exe")
+                                .spawn();
+
                             std::process::exit(0);
                         }
                     });
@@ -148,6 +161,11 @@ fn read_lines_from_file(file_path: PathBuf) -> Result<Vec<String>, io::Error> {
 }
 
 fn main() {
+    // portapadプロセスを強制終了
+    let _ = Command::new("taskkill")
+        .args(["/IM", "PortaPad.exe", "/F"])
+        .output();
+
     let options = NativeOptions {
         viewport: egui::ViewportBuilder::default()
             .with_inner_size([600.0, 300.0])
@@ -164,4 +182,8 @@ fn main() {
             Ok(Box::<MyApp>::default())
         }),
     );
+    
+    // Portapadを再起動
+    let _ = Command::new("C:\\Program Files\\PortaPad\\PortaPad.exe")
+        .spawn();
 }

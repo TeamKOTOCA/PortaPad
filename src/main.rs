@@ -8,14 +8,11 @@ use notify_rust::Notification;
 
 #[derive(Deserialize, Debug)]
 struct Config {
-    server: ServerConfig,
+    sigserver: String,
+    sec_sigserver: String,
+    keyboard: String,
 }
 
-#[derive(Deserialize, Debug)]
-struct ServerConfig {
-    host: String,
-    port: u16,
-}
 
 fn get_config_path() -> PathBuf {
     let mut path = env::var_os("APPDATA")
@@ -51,7 +48,7 @@ async fn main(){
         .expect("読み込み失敗");
     let config: Config = toml::from_str(&config_str)
         .expect("TOMLエラー");
-    println!("{:?}", config);
+    println!("fa{:?}", config);
     loop {
         if let Err(e) = remote::remote_main().await {
             eprintln!("remote_mainが終了しました: {:?}", e);

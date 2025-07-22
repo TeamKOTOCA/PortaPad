@@ -1,4 +1,4 @@
-#![windows_subsystem = "windows"]
+//#![windows_subsystem = "windows"]
 mod remote;
 use tokio;
 use serde::Deserialize;
@@ -10,7 +10,6 @@ use notify_rust::Notification;
 struct Config {
     sigserver: String,
     sec_sigserver: String,
-    keyboard: String,
 }
 
 

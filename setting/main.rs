@@ -1,4 +1,4 @@
-// すでにあるコードを活かしつつ、UIを切り替える形に構造化する
+
 #![cfg_attr(
     all(not(debug_assertions), target_os = "windows"),
     windows_subsystem = "windows"
@@ -20,7 +20,6 @@ use std::sync::Once;
 struct Config {
     sigserver: String,
     sec_sigserver: String,
-    keyboard: String,
 }
 
 pub static APPDATA: Lazy<PathBuf> = Lazy::new(|| {
@@ -47,11 +46,11 @@ pub struct MyApp {
     pub chenged_clients_list: bool,
 }
 
-
 impl eframe::App for MyApp {
     fn update(&mut self, ctx: &Context, _frame: &mut eframe::Frame) {
         CentralPanel::default().show(ctx, |ui| {
             ui.heading("シグナリングサーバー");
+            ui.label("ws://やhttps://などは書かないでください。");
             ui.horizontal(|ui| {
                 ui.label("シグナリングサーバーURL：");
                 ui.text_edit_singleline(&mut self.sig_url);

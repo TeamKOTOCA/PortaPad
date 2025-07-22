@@ -15,6 +15,7 @@ use webrtc::peer_connection::sdp::session_description::RTCSessionDescription;
 use notify_rust::Notification;
 use winapi::um::winuser;
 use tokio::signal;
+use std::{env, fs, path::PathBuf};
 use tokio::time::{interval, Duration};
 
 use webrtc::ice_transport::ice_candidate::RTCIceCandidate;
@@ -26,6 +27,11 @@ struct IceCandidateMsg {
     sdpMLineIndex: Option<u16>,
 }
 
+#[derive(Deserialize, Debug)]
+struct Config {
+    sigserver: String,
+    sec_sigserver: String,
+}
 
 #[derive(Deserialize, Debug)]  // JSON用の構造体
 struct SigMessage {
@@ -54,6 +60,16 @@ struct IceCandidateInit {
     sdpMLineIndex: Option<u16>,
 }
 
+fn get_config_path() -> PathBuf {
+    let mut path = env::var_os("APPDATA")
+        .map(PathBuf::from)
+        .expect("APPDATAが取得できませんでした");
+    path.push("portapad");
+    fs::create_dir_all(&path).expect("フォルダ作成失敗");
+    path.push("config.toml");
+    path
+}
+
 pub async fn remote_main() -> Result<(), Box<dyn std::error::Error>> {
     use tokio::sync::Notify;
 
@@ -78,17 +94,31 @@ pub async fn remote_main() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     //fromhost共有用
-
-
     let fromhost_shared = Arc::new(Mutex::new(None::<String>));
 
+    let config_path = get_config_path();
+    let config_str = fs::read_to_string(&config_path)
+        .expect("読み込み失敗");
+    let setting_config: Config = toml::from_str(&config_str)
+        .expect("TOMLエラー");
+
     // WebSocket接続開始
-    let ws_stream_result = connect_async("wss://portapad-signal.onrender.com").await;
+    let ws_stream_result = connect_async("wss://".to_string() + &setting_config.sigserver).await;
     let (ws_stream, _) = match ws_stream_result {
         Ok(result) => result,
         Err(e) => {
             eprintln!("WebSocket接続に失敗しました: {:?}", e);
-            return Err(e.into()); // 必要に応じて型変換
+            let fallback_ws_stream_result = connect_async("wss://".to_string() + &setting_config.sec_sigserver).await;
+            match fallback_ws_stream_result {
+                Ok(result) => {
+                    println!("フォールバックサーバーへのWebSocket接続に成功しました。");
+                    result
+                },
+                Err(fallback_e) => {
+                    eprintln!("フォールバックWebSocket接続にも失敗しました: {:?}", fallback_e);
+                    return Err(fallback_e.into());
+                }
+            }
         }
     };
 

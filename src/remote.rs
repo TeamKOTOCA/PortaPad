@@ -18,7 +18,8 @@ use tokio::signal;
 use std::{env, fs, path::PathBuf};
 use tokio::time::{interval, Duration};
 
-use webrtc::ice_transport::ice_candidate::RTCIceCandidate;
+//認証しているかを保持する変数。false = 未認証、true = 認証済み（操作処理を受け付ける）
+static mut IsCerted: bool = false;
 
 #[derive(Serialize)]
 struct IceCandidateMsg {
@@ -27,6 +28,7 @@ struct IceCandidateMsg {
     sdpMLineIndex: Option<u16>,
 }
 
+//config.toml(設定ファイル)の型
 #[derive(Deserialize, Debug)]
 struct Config {
     sigserver: String,
@@ -278,73 +280,98 @@ pub async fn remote_main() -> Result<(), Box<dyn std::error::Error>> {
                 let msg_data = msg.data.clone();
                 let right_m = Arc::clone(&right_m);
                 let left_m = Arc::clone(&left_m);
-                Box::pin(async move{
+                Box::pin(async move {
                     //操作モジュールのenigo初期化
                     let mut enigo = Enigo::new();
-                    
+
                     let text = String::from_utf8_lossy(&msg_data);
                     let first_two: String = text.chars().take(2).collect();
                     let no_first: String = text.chars().skip(2).collect();
-                    if first_two == "pg"{
 
-                    }else if first_two == "mb"{
-                        if no_first == "0"{
-                            enigo.mouse_click(MouseButton::Left);
-                        }else if no_first == "1" {
-                            enigo.mouse_click(MouseButton::Right);
+                    unsafe{
+                        if IsCerted == false {
+                            /*
+                                認証処理
+                            */
+                        }else{
+                            match first_two.as_str() {
+                                "pg" => {
+                                    // 多分ページ？だったはず。クライアントがどのページを触ってたか
+                                }
+                                "mb" => {
+                                    match no_first.as_str() {
+                                        "0" => {
+                                            enigo.mouse_click(MouseButton::Left);
+                                        }
+                                        "1" => {
+                                            enigo.mouse_click(MouseButton::Right);
+                                        }
+                                        _ => {
+                                            // "mb" の後に予期しない値が来た場合の処理 (必要であれば)
+                                            eprintln!("Unknown mouse button action: {}", no_first);
+                                        }
+                                    }
+                                }
+                                "mm" => {
+                                    let parts: Vec<&str> = no_first.split(',').collect();
+                                    let part_x: i32 = parts.get(0).and_then(|s| s.parse::<i32>().ok()).unwrap_or(0) * 3;
+                                    let part_y: i32 = parts.get(1).and_then(|s| s.parse::<i32>().ok()).unwrap_or(0) * 3;
+                                    enigo.mouse_move_relative(part_x, part_y);
+                                }
+                                "mp" => {
+                                    let parts: Vec<&str> = no_first.split(',').collect();
+                                    let part_x_int: i32 = parts.get(0).and_then(|s| s.parse::<f64>().ok()).unwrap_or(0.0) as i32;
+                                    let part_y_int: i32 = parts.get(1).and_then(|s| s.parse::<f64>().ok()).unwrap_or(0.0) as i32;
+                                    enigo.mouse_move_to(part_x_int, part_y_int);
+                                }
+                                "md" => {
+                                    enigo.mouse_down(MouseButton::Left);
+                                    let parts: Vec<&str> = no_first.split(',').collect();
+                                    let part_x: i32 = parts.get(0).and_then(|s| s.parse::<i32>().ok()).unwrap_or(0) * 3;
+                                    let part_y: i32 = parts.get(1).and_then(|s| s.parse::<i32>().ok()).unwrap_or(0) * 3;
+                                    enigo.mouse_move_relative(part_x, part_y);
+                                }
+                                "ms" => {
+                                    let parts: Vec<&str> = no_first.split(',').collect();
+                                    let part_x_int: i32 = parts.get(0).and_then(|s| s.parse::<i32>().ok()).unwrap_or(0) / 6;
+                                    let part_y_int: i32 = parts.get(1).and_then(|s| s.parse::<i32>().ok()).unwrap_or(0) / 6;
+                                    enigo.mouse_scroll_x(part_x_int);
+                                    enigo.mouse_scroll_y(part_y_int);
+                                }
+                                "mu" => {
+                                    let mut locked_left = left_m.lock().await;
+                                    let mut locked_right = right_m.lock().await;
+                                    if *locked_left {
+                                        println!("aa");
+                                        enigo.mouse_up(MouseButton::Left);
+                                        *locked_left = false;
+                                    }
+                                    if *locked_right {
+                                        println!("as");
+                                        enigo.mouse_up(MouseButton::Right);
+                                        *locked_right = false;
+                                    }
+                                }
+                                "kp" => {
+                                    let key = string_to_key(&no_first);
+                                    enigo.key_click(key);
+                                }
+                                "ku" => {
+                                    let key = string_to_key(&no_first);
+                                    enigo.key_up(key);
+                                }
+                                "kd" => {
+                                    let key = string_to_key(&no_first);
+                                    enigo.key_down(key);
+                                }
+                                _ => {
+                                    // どのパターンにもマッチしない場合の処理
+                                    // エラーログ出力や、無視するなどの対応を検討
+                                    eprintln!("Unknown command prefix: {}", first_two);
+                                }
+                            }
+
                         }
-                    }else if first_two == "mm" {
-                        let parts: Vec<&str> = no_first.split(',').collect();
-                        let part_x: &&str = parts.get(0).unwrap_or(&"0");
-                        let part_y: &&str = parts.get(1).unwrap_or(&"0");
-                        let part_x_int: i32 = part_x.parse::<i32>().unwrap() * 3;
-                        let part_y_int: i32 = part_y.parse::<i32>().unwrap() * 3;
-                        enigo.mouse_move_relative(part_x_int, part_y_int);
-                    }else if first_two == "mp"{
-                            let parts: Vec<&str> = no_first.split(',').collect();
-                            let part_x = parts.get(0).copied().unwrap_or("0");
-                            let part_y = parts.get(1).copied().unwrap_or("0");
-                            let part_x_int = part_x.parse::<f64>().unwrap_or(0.0) as i32;
-                            let part_y_int = part_y.parse::<f64>().unwrap_or(0.0) as i32;
-                            enigo.mouse_move_to(part_x_int, part_y_int);
-                    }else if first_two == "md"{
-                        enigo.mouse_down(MouseButton::Left);
-                        let parts: Vec<&str> = no_first.split(',').collect();
-                        let part_x: &&str = parts.get(0).unwrap_or(&"0");
-                        let part_y: &&str = parts.get(1).unwrap_or(&"0");
-                        let part_x_int: i32 = part_x.parse::<i32>().unwrap() * 3;
-                        let part_y_int: i32 = part_y.parse::<i32>().unwrap() * 3;
-                        enigo.mouse_move_relative(part_x_int, part_y_int);
-                    }else if first_two == "ms"{
-                        let parts: Vec<&str> = no_first.split(',').collect();
-                        let part_x = parts.get(0).unwrap_or(&"0");
-                        let part_y = parts.get(1).unwrap_or(&"0");
-                        let part_x_int: i32 = part_x.parse::<i32>().unwrap() / 6;
-                        let part_y_int: i32 = part_y.parse::<i32>().unwrap() / 6;
-                        enigo.mouse_scroll_x(part_x_int);
-                        enigo.mouse_scroll_y(part_y_int);
-                    }else if first_two == "mu"{
-                            let mut locked_left = left_m.lock().await;
-                            let mut locked_right = right_m.lock().await;
-                        if *locked_left {
-                            println!("aa");
-                            enigo.mouse_up(MouseButton::Left);
-                            *locked_left = false;
-                        }
-                        if *locked_right {
-                            println!("as");
-                            enigo.mouse_up(MouseButton::Right);
-                            *locked_right = false;
-                        }
-                    }else if first_two == "kp"{
-                        let key = string_to_key(&no_first);
-                        enigo.key_click(key);
-                    }else if first_two == "ku"{
-                        let key = string_to_key(&no_first);
-                        enigo.key_up(key);
-                    }else if first_two == "kd"{
-                        let key = string_to_key(&no_first);
-                        enigo.key_down(key);
                     }
                 })
             }));

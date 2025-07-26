@@ -29,17 +29,10 @@ chrono = "0.4"
 dirs = "6.0.0"
 lazy_static = "1.4.0"
 crossbeam-channel = "0.5"
-windows = { version = "0.61.3", features = [
-    "Win32_Foundation",
-    "Win32_UI_Input",
-    "Win32_UI_Input_KeyboardAndMouse",
-    "Win32_UI_WindowsAndMessaging",
-    "Win32_System_LibraryLoader",
-    "Win32_Graphics_Gdi",
-    "Win32_Storage_FileSystem",
-    "Win32_Security"
-]}
-hidapi = "2.6.3"
+minifb = "0.28.0"
+image = "0.25.6"
+qrcode-generator = "5.0.0"
+base64 = "0.22"
 
 
 [[bin]]

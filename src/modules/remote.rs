@@ -1,3 +1,5 @@
+use super::certification;
+
 use enigo::*;
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
 use std::sync::Arc;
@@ -290,9 +292,8 @@ pub async fn remote_main() -> Result<(), Box<dyn std::error::Error>> {
 
                     unsafe{
                         if IsCerted == false {
-                            /*
-                                認証処理
-                            */
+                            //認証処理
+                            certification::certification();
                         }else{
                             match first_two.as_str() {
                                 "pg" => {

@@ -1,16 +1,9 @@
 //#![windows_subsystem = "windows"]
-mod remote;
+mod modules;
 use tokio;
 use serde::Deserialize;
 use std::{env, fs, path::PathBuf};
 use std::process::Command;
-use notify_rust::Notification;
-
-#[derive(Deserialize, Debug)]
-struct Config {
-    sigserver: String,
-    sec_sigserver: String,
-}
 
 
 fn get_config_path() -> PathBuf {
@@ -43,13 +36,8 @@ async fn main(){
     if !config_path.exists() {
         open_setting();
     }
-    let config_str = fs::read_to_string(&config_path)
-        .expect("読み込み失敗");
-    let config: Config = toml::from_str(&config_str)
-        .expect("TOMLエラー");
-    println!("fa{:?}", config);
     loop {
-        if let Err(e) = remote::remote_main().await {
+        if let Err(e) = modules::remote::remote_main().await {
             eprintln!("remote_mainが終了しました: {:?}", e);
             // 必要なら少し待機してから再起動
             tokio::time::sleep(std::time::Duration::from_secs(3)).await;

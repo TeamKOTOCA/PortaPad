@@ -5,6 +5,8 @@ use std::time::{Duration, Instant};
 use std::error::Error;
 
 pub fn certification() -> Result<(), Box<dyn Error>> {
+
+    
     //認証画面の背景画像
     const CERT_BG_IMG: &[u8] = include_bytes!("cert_bg_sec.png");
     let mut background_img = image::load_from_memory(CERT_BG_IMG).unwrap().to_rgba8();

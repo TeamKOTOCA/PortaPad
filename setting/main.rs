@@ -11,10 +11,7 @@ use std::io; // io::Error を使うために必要
 use once_cell::sync::Lazy;
 use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
-use std::process::{Command, Child};
-use std::thread::sleep;
-use std::time::Duration;
-use std::sync::Once;
+use std::process::Command;
 
 #[derive(Deserialize, Serialize, Debug, Default)]
 struct Config {

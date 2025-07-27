@@ -1,7 +1,6 @@
 //#![windows_subsystem = "windows"]
 mod modules;
 use tokio;
-use serde::Deserialize;
 use std::{env, fs, path::PathBuf};
 use std::process::Command;
 

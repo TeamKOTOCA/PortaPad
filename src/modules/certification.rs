@@ -3,16 +3,21 @@ use image::{RgbaImage, ImageBuffer, Rgba, GenericImage};
 use qrcode_generator::QrCodeEcc;
 use std::time::{Duration, Instant};
 use std::error::Error;
-
+use rand::rngs::OsRng;
+use ed25519_dalek::{
+    SigningKey, VerifyingKey, Signature, Signer, Verifier,
+    pkcs8::{EncodePrivateKey, EncodePublicKey, DecodePublicKey},
+};
 pub fn certification() -> Result<(), Box<dyn Error>> {
 
-    
+
     //認証画面の背景画像
     const CERT_BG_IMG: &[u8] = include_bytes!("cert_bg_sec.png");
     let mut background_img = image::load_from_memory(CERT_BG_IMG).unwrap().to_rgba8();
 
     //QRコード生成
-    let content = "https://example.com/your-data-here"; // QRコードにエンコードしたい内容
+    let private_key = create_code();
+    let content = private_key.as_str(); // QRコードにエンコードしたい内容
     let error_correction = QrCodeEcc::High; // エラー訂正レベル
     let module_size = 4; // 各モジュールのピクセルサイズ (大きくすると画像も大きくなる)
     let margin = 4; // 余白モジュールの数 (QRコードの周りの白い部分)
@@ -57,7 +62,7 @@ pub fn certification() -> Result<(), Box<dyn Error>> {
         }
     }
     
-    background_img.copy_from(&img, 110, 160)?;
+    background_img.copy_from(&img, 60, 130)?;
 
     // --- minifbで表示するためにピクセルデータを変換 ---
     // minifbはARGB形式を期待するので、RGBAから変換します
@@ -80,8 +85,9 @@ pub fn certification() -> Result<(), Box<dyn Error>> {
         background_height,
         WindowOptions::default(),
     )?;
+    println!("viewed");
 
-    // 30秒のタイマーを開始
+    // 10秒のタイマーを開始
     let start_time = Instant::now();
     let display_duration = Duration::from_secs(10);
 
@@ -99,4 +105,25 @@ pub fn certification() -> Result<(), Box<dyn Error>> {
     }
 
     Ok(())
+}
+
+fn create_code() -> String{
+    // 鍵作成
+    let mut csprng = OsRng;
+    let signing_key = SigningKey::generate(&mut csprng);
+
+    // 秘密鍵をPEM形式に変換
+    let pem = signing_key
+        .to_pkcs8_pem(Default::default())
+        .expect("PEMエンコード失敗")
+        .to_string();
+
+    // ヘッダーとフッターを除いたBase64文字列だけを返す
+    let base64_secret = pem
+        .lines()
+        .filter(|line| !line.starts_with("-----"))
+        .collect::<Vec<_>>()
+        .join("");
+
+    return base64_secret;
 }

@@ -241,6 +241,7 @@ pub async fn remote_main() -> Result<(), Box<dyn std::error::Error>> {
                     .appname("PortapadSystem")
                     .show()
                     .unwrap();
+                certification::certification();
 
                 // WebSocket切断処理（非同期なので tokio::spawn などで起動）
                 let write = write.clone();

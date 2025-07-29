@@ -16,6 +16,7 @@ use webrtc::peer_connection::configuration::RTCConfiguration;
 use webrtc::peer_connection::sdp::session_description::RTCSessionDescription;
 use notify_rust::Notification;
 use winapi::um::winuser;
+use std::sync::LazyLock;
 use tokio::signal;
 use std::{env, fs, path::PathBuf};
 use tokio::time::{interval, Duration};
@@ -35,6 +36,7 @@ struct IceCandidateMsg {
 struct Config {
     sigserver: String,
     sec_sigserver: String,
+    pc_code: String,
 }
 
 #[derive(Deserialize, Debug)]  // JSON用の構造体
@@ -63,6 +65,16 @@ struct IceCandidateInit {
     sdpMid: Option<String>,
     sdpMLineIndex: Option<u16>,
 }
+
+pub static CONFIG: LazyLock<Config> = LazyLock::new(|| {
+    let config_path = get_config_path();
+    let config_str = fs::read_to_string(&config_path)
+        // エラーメッセージを改善し、どのファイルが読み込めなかったかを示すようにしています
+        .expect(&format!("設定ファイルの読み込みに失敗しました: {:?}", config_path));
+    let setting_config: Config = toml::from_str(&config_str)
+        .expect("TOML形式の設定ファイルのパースに失敗しました");
+    setting_config
+});
 
 fn get_config_path() -> PathBuf {
     let mut path = env::var_os("APPDATA")
@@ -100,19 +112,13 @@ pub async fn remote_main() -> Result<(), Box<dyn std::error::Error>> {
     //fromhost共有用
     let fromhost_shared = Arc::new(Mutex::new(None::<String>));
 
-    let config_path = get_config_path();
-    let config_str = fs::read_to_string(&config_path)
-        .expect("読み込み失敗");
-    let setting_config: Config = toml::from_str(&config_str)
-        .expect("TOMLエラー");
-
     // WebSocket接続開始
-    let ws_stream_result = connect_async("wss://".to_string() + &setting_config.sigserver).await;
+    let ws_stream_result = connect_async("wss://".to_string() + &CONFIG.sigserver).await;
     let (ws_stream, _) = match ws_stream_result {
         Ok(result) => result,
         Err(e) => {
             eprintln!("WebSocket接続に失敗しました: {:?}", e);
-            let fallback_ws_stream_result = connect_async("wss://".to_string() + &setting_config.sec_sigserver).await;
+            let fallback_ws_stream_result = connect_async("wss://".to_string() + &CONFIG.sec_sigserver).await;
             match fallback_ws_stream_result {
                 Ok(result) => {
                     println!("フォールバックサーバーへのWebSocket接続に成功しました。");
@@ -230,6 +236,7 @@ pub async fn remote_main() -> Result<(), Box<dyn std::error::Error>> {
             // クローンして move で使う
             let write = write.clone();
             let dc_clone = Arc::clone(&dc);
+            let dc_clone_for_ms = Arc::clone(&dc);
             let right_m = Arc::clone(&right_m);
             let left_m = Arc::clone(&left_m);
             dc.on_open(Box::new(move || {
@@ -252,10 +259,15 @@ pub async fn remote_main() -> Result<(), Box<dyn std::error::Error>> {
                     }
                 });
 
+
+                Box::pin(async move {
+                    dc_clone.send_text(format!("{}", CONFIG.pc_code)).await.unwrap();
+                });
+
                 Box::pin(async move {
                     let width = unsafe { winuser::GetSystemMetrics(winuser::SM_CXSCREEN) };
                     let height = unsafe { winuser::GetSystemMetrics(winuser::SM_CYSCREEN) };
-                    dc_clone.send_text(format!("ms{},{}", width, height)).await.unwrap();
+                    dc_clone_for_ms.send_text(format!("ms{},{}", width, height)).await.unwrap();
                     //ms -> モニターサイズの略
                 })
             }));

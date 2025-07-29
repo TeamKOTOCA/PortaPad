@@ -12,11 +12,13 @@ use once_cell::sync::Lazy;
 use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
 use std::process::Command;
+use rand::{Rng, distributions::Alphanumeric};
 
 #[derive(Deserialize, Serialize, Debug, Default)]
 struct Config {
     sigserver: String,
     sec_sigserver: String,
+    pc_code: String,
 }
 
 pub static APPDATA: Lazy<PathBuf> = Lazy::new(|| {
@@ -109,6 +111,15 @@ impl eframe::App for MyApp {
                             }
                             if !self.sig_url_sec.is_empty() {
                                 config.sec_sigserver = self.sig_url_sec.clone();
+                            }
+                            if config.pc_code == "" {
+                                //ランダムなコードをPCの一意コードとして登録。クライアントからホストを識別する
+                                let pc_code: String = rand::thread_rng() // スレッドごとの乱数ジェネレーターを取得
+                                    .sample_iter(&Alphanumeric) // 英数字をランダムに生成するイテレータ
+                                    .take(64) // 指定された長さだけ取得
+                                    .map(char::from) // char に変換
+                                    .collect();
+                                config.pc_code = pc_code.to_string();
                             }
                             fs::write(APPDATA.join("config.toml"), toml::to_string_pretty(&config).unwrap()).unwrap();
                             

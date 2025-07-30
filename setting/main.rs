@@ -1,4 +1,3 @@
-
 #![cfg_attr(
     all(not(debug_assertions), target_os = "windows"),
     windows_subsystem = "windows"
@@ -7,7 +6,7 @@
 use eframe::{egui::*, NativeOptions};
 use eframe::egui;
 use std::fs;
-use std::io; // io::Error を使うために必要
+use std::io;
 use once_cell::sync::Lazy;
 use std::path::PathBuf;
 use serde::{Deserialize, Serialize};

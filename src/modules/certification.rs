@@ -97,7 +97,7 @@ fn create_code() -> String {
     let signing_key = SigningKey::generate(&mut csprng);
 
     let der = signing_key
-        .to_pkcs8_der_with_public_key()
+        .to_pkcs8_der()
         .expect("DER（公開鍵付き）失敗");
 
     base64::encode(der.as_bytes())

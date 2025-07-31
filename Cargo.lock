@@ -22,6 +22,7 @@ dependencies = [
  "minifb",
  "notify-rust",
  "once_cell",
+ "pkcs8",
  "qrcode-generator",
  "rand",
  "rand_core",

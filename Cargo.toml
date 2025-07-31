@@ -33,9 +33,10 @@ minifb = "0.28.0"
 image = "0.25.6"
 qrcode-generator = "5.0.0"
 base64 = "0.22"
-ed25519-dalek = { version = "2.1.1", features = ["rand_core", "serde", "pkcs8", "pem"] }
+ed25519-dalek = { version = "2.2.0", features = ["rand_core", "serde", "pkcs8", "pem"] }
 rand = "0.8.5"
 rand_core = "0.6.4"
+pkcs8 = "0.10"
 
 [[bin]]
 name = "Portapad"

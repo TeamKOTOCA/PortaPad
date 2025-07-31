@@ -248,7 +248,7 @@ pub async fn remote_main() -> Result<(), Box<dyn std::error::Error>> {
                     .appname("PortapadSystem")
                     .show()
                     .unwrap();
-                certification::certification();
+                //certification::certification();
 
                 // WebSocket切断処理（非同期なので tokio::spawn などで起動）
                 let write = write.clone();
@@ -259,9 +259,10 @@ pub async fn remote_main() -> Result<(), Box<dyn std::error::Error>> {
                     }
                 });
 
-
-                Box::pin(async move {
-                    dc_clone.send_text(format!("{}", CONFIG.pc_code)).await.unwrap();
+                tokio::spawn(async move {
+                    if let Err(e) = dc_clone.send_text(format!("co{}", CONFIG.pc_code)).await {
+                        eprintln!("PCコード送信エラー: {:?}", e);
+                    }
                 });
 
                 Box::pin(async move {

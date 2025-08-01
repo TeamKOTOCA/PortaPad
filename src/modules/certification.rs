@@ -95,10 +95,6 @@ pub fn certification() -> Result<(), Box<dyn Error>> {
 fn create_code() -> String {
     let mut csprng = OsRng;
     let signing_key = SigningKey::generate(&mut csprng);
-
-    let der = signing_key
-        .to_pkcs8_der()
-        .expect("DER（公開鍵付き）失敗");
-
-    base64::encode(der.as_bytes())
+    base64::encode(signing_key.to_bytes())  // ← 32バイトだけ出す
 }
+

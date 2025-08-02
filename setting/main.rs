@@ -12,12 +12,19 @@ use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
 use std::process::Command;
 use rand::{Rng, distributions::Alphanumeric};
+use rand::rngs::OsRng;
+use ed25519_dalek::{
+    SigningKey, VerifyingKey,
+    pkcs8::{EncodePublicKey, DecodePublicKey},
+};
 
 #[derive(Deserialize, Serialize, Debug, Default)]
 struct Config {
     sigserver: String,
     sec_sigserver: String,
     pc_code: String,
+    privatekey: String,
+    publickey: String,
 }
 
 pub static APPDATA: Lazy<PathBuf> = Lazy::new(|| {
@@ -119,6 +126,14 @@ impl eframe::App for MyApp {
                                     .map(char::from) // char に変換
                                     .collect();
                                 config.pc_code = pc_code.to_string();
+                            }
+                            if config.privatekey == "" {
+                                let mut csprng = OsRng;
+                                let signing_key = SigningKey::generate(&mut csprng);
+                                let verifying_key: VerifyingKey = signing_key.verifying_key();
+
+                                config.privatekey = base64::encode(signing_key.to_bytes());       // 秘密鍵（32バイト）
+                                config.publickey = base64::encode(verifying_key.to_bytes());     // 公開鍵（32バイト）
                             }
                             fs::write(APPDATA.join("config.toml"), toml::to_string_pretty(&config).unwrap()).unwrap();
                             

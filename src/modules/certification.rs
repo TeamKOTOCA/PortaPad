@@ -10,11 +10,17 @@ use ed25519_dalek::{
     pkcs8::{EncodePublicKey, DecodePublicKey},
 };
 
-pub fn certification() -> Result<(), Box<dyn Error>> {
-    const CERT_BG_IMG: &[u8] = include_bytes!("cert_bg_sec.png");
+pub fn certification(code: String){
+    println!("code{}", code);
+    //公開鍵でcodeを検証。検証してPCコードが取り出せたらOK
+}
+
+
+fn makeQR(private_key_from_config: String) -> Result<(), Box<dyn Error>> {
+        const CERT_BG_IMG: &[u8] = include_bytes!("cert_bg_sec.png");
     let mut background_img = image::load_from_memory(CERT_BG_IMG)?.to_rgba8();
 
-    let private_key = create_code();
+    let private_key = private_key_from_config;
     let content = private_key.as_str();
     let error_correction = QrCodeEcc::High;
     let module_size = 4;
@@ -91,10 +97,3 @@ pub fn certification() -> Result<(), Box<dyn Error>> {
 
     Ok(())
 }
-
-fn create_code() -> String {
-    let mut csprng = OsRng;
-    let signing_key = SigningKey::generate(&mut csprng);
-    base64::encode(signing_key.to_bytes())  // ← 32バイトだけ出す
-}
-

@@ -37,7 +37,10 @@ struct Config {
     sigserver: String,
     sec_sigserver: String,
     pc_code: String,
+    privatekey: String,
+    publickey: String,
 }
+
 
 #[derive(Deserialize, Debug)]  // JSON用の構造体
 struct SigMessage {
@@ -248,8 +251,6 @@ pub async fn remote_main() -> Result<(), Box<dyn std::error::Error>> {
                     .appname("PortapadSystem")
                     .show()
                     .unwrap();
-                //certification::certification();
-
                 // WebSocket切断処理（非同期なので tokio::spawn などで起動）
                 let write = write.clone();
                 tokio::spawn(async move {
@@ -259,8 +260,9 @@ pub async fn remote_main() -> Result<(), Box<dyn std::error::Error>> {
                     }
                 });
 
+                //認証用PCコードを送る
                 tokio::spawn(async move {
-                    if let Err(e) = dc_clone.send_text(format!("co{}", CONFIG.pc_code)).await {
+                    if let Err(e) = dc_clone.send_text(format!("ca{}", CONFIG.pc_code)).await {
                         eprintln!("PCコード送信エラー: {:?}", e);
                     }
                 });
@@ -307,7 +309,7 @@ pub async fn remote_main() -> Result<(), Box<dyn std::error::Error>> {
                     unsafe{
                         if IsCerted == false {
                             //認証処理
-                            certification::certification();
+                            certification::certification(no_first);
                         }else{
                             match first_two.as_str() {
                                 "pg" => {

@@ -2,6 +2,7 @@ use super::certification;
 
 use enigo::*;
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
+use std::fmt::format;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use tokio::sync::mpsc;
@@ -393,8 +394,9 @@ pub async fn remote_main() -> Result<(), Box<dyn std::error::Error>> {
                                     println!("✅ 署名検証に成功しました！");
                                     IsCerted = true;
                                 }
-                                Err(_code) => {
+                                Err(code) => {
                                     eprintln!("❌ 検証失敗");
+                                    //dc_clone2.send_text(format!("cb")).await.unwrap();
                                 }
                             }
                         }

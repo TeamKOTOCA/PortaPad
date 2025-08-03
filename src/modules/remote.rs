@@ -307,10 +307,7 @@ pub async fn remote_main() -> Result<(), Box<dyn std::error::Error>> {
                     let no_first: String = text.chars().skip(2).collect();
 
                     unsafe{
-                        if false {
-                            //認証処理falseでパスさせてるからよろしく
-                            certification::certification(no_first);
-                        }else{
+                        if IsCerted {
                             match first_two.as_str() {
                                 "pg" => {
                                     // 多分ページ？だったはず。クライアントがどのページを触ってたか
@@ -387,7 +384,19 @@ pub async fn remote_main() -> Result<(), Box<dyn std::error::Error>> {
                                     eprintln!("Unknown command prefix: {}", first_two);
                                 }
                             }
-
+                            
+                        }else{
+                            //認証処理
+                            //第一引数から、送られてきた認証コード、設定されてるプライベートキー、設定されてるパブリックキー、PCコード
+                            match certification::certification(no_first, CONFIG.privatekey.clone(), CONFIG.publickey.clone(), CONFIG.pc_code.clone()) {
+                                Ok(()) => {
+                                    println!("✅ 署名検証に成功しました！");
+                                    IsCerted = true;
+                                }
+                                Err(_code) => {
+                                    eprintln!("❌ 検証失敗");
+                                }
+                            }
                         }
                     }
                 })

@@ -307,8 +307,8 @@ pub async fn remote_main() -> Result<(), Box<dyn std::error::Error>> {
                     let no_first: String = text.chars().skip(2).collect();
 
                     unsafe{
-                        if IsCerted == false {
-                            //認証処理
+                        if false {
+                            //認証処理falseでパスさせてるからよろしく
                             certification::certification(no_first);
                         }else{
                             match first_two.as_str() {

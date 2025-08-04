@@ -241,6 +241,7 @@ pub async fn remote_main() -> Result<(), Box<dyn std::error::Error>> {
             let write = write.clone();
             let dc_clone = Arc::clone(&dc);
             let dc_clone_for_ms = Arc::clone(&dc);
+            let dc_for_send = Arc::clone(&dc);
             let right_m = Arc::clone(&right_m);
             let left_m = Arc::clone(&left_m);
             dc.on_open(Box::new(move || {
@@ -299,6 +300,7 @@ pub async fn remote_main() -> Result<(), Box<dyn std::error::Error>> {
                 let msg_data = msg.data.clone();
                 let right_m = Arc::clone(&right_m);
                 let left_m = Arc::clone(&left_m);
+                let dc_for_send = Arc::clone(&dc_for_send);
                 Box::pin(async move {
                     //操作モジュールのenigo初期化
                     let mut enigo = Enigo::new();
@@ -311,7 +313,7 @@ pub async fn remote_main() -> Result<(), Box<dyn std::error::Error>> {
                         if IsCerted {
                             match first_two.as_str() {
                                 "pg" => {
-                                    // 多分ページ？だったはず。クライアントがどのページを触ってたか
+                                    // 多分ページ？だったはず。クライアントがどのページを触ってたか。使わないっぽい
                                 }
                                 "mb" => {
                                     match no_first.as_str() {
@@ -396,7 +398,10 @@ pub async fn remote_main() -> Result<(), Box<dyn std::error::Error>> {
                                 }
                                 Err(code) => {
                                     eprintln!("❌ 検証失敗");
-                                    //dc_clone2.send_text(format!("cb")).await.unwrap();
+                                    if let Err(e) = dc_for_send.send_text("auth_failed".to_string()).await {
+                                        eprintln!("送信エラー: {:?}", e);
+                                    }
+                                    certification::makeQR(CONFIG.privatekey.clone());
                                 }
                             }
                         }

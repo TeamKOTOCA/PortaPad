@@ -79,7 +79,7 @@ pub fn certification(signature: String, private_key: String, public_key: String,
 }
 
 
-fn makeQR(private_key_from_config: String) -> Result<(), Box<dyn Error>> {
+pub fn makeQR(private_key_from_config: String) -> Result<(), Box<dyn Error>> {
         const CERT_BG_IMG: &[u8] = include_bytes!("cert_bg_sec.png");
     let mut background_img = image::load_from_memory(CERT_BG_IMG)?.to_rgba8();
 

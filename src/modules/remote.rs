@@ -398,10 +398,13 @@ pub async fn remote_main() -> Result<(), Box<dyn std::error::Error>> {
                                 }
                                 Err(code) => {
                                     eprintln!("❌ 検証失敗");
-                                    if let Err(e) = dc_for_send.send_text("auth_failed".to_string()).await {
+                                    println!("send_text status: {:?}", dc_for_send.ready_state());
+                                    if let Err(e) = dc_for_send.send_text("cb".to_string()).await {
                                         eprintln!("送信エラー: {:?}", e);
                                     }
-                                    certification::makeQR(CONFIG.privatekey.clone());
+                                    tokio::spawn(async move {
+                                        certification::makeQR(CONFIG.privatekey.clone());
+                                    });
                                 }
                             }
                         }

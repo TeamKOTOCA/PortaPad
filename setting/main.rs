@@ -68,6 +68,16 @@ impl eframe::App for MyApp {
             ui.heading("コードのリセット");
             ui.label("不正アクセスが発覚した場合に実行してください。");
             ui.label("※全てのクライアントの接続が取り消されます");
+            if ui.button("コードをリセット").clicked() {
+                let mut config: Config = match fs::read_to_string(APPDATA.join("config.toml")) {
+                    Ok(toml_str) => toml::from_str(&toml_str).unwrap_or_default(),
+                    Err(_) => Config::default(),
+                };
+                config.privatekey = "".to_string();
+                config.publickey = "".to_string();
+                fs::write(APPDATA.join("config.toml"), toml::to_string_pretty(&config).unwrap()).unwrap();
+
+            }
         });
         TopBottomPanel::bottom("bottom_panel").show(ctx, |ui| {
                 ui.horizontal(|ui| {

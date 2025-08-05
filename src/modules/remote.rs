@@ -1,6 +1,6 @@
 use super::certification;
 
-use enigo::*;
+use enigo::{Enigo, Key, Keyboard, Mouse, Button, Settings, Direction};
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
 use std::fmt::format;
 use std::sync::Arc;
@@ -303,8 +303,8 @@ pub async fn remote_main() -> Result<(), Box<dyn std::error::Error>> {
                 let dc_for_send = Arc::clone(&dc_for_send);
                 Box::pin(async move {
                     //操作モジュールのenigo初期化
-                    let mut enigo = Enigo::new();
-
+                    let mut enigo = Enigo::new(&Settings::default()).unwrap();
+                    
                     let text = String::from_utf8_lossy(&msg_data);
                     let first_two: String = text.chars().take(2).collect();
                     let no_first: String = text.chars().skip(2).collect();
@@ -318,13 +318,16 @@ pub async fn remote_main() -> Result<(), Box<dyn std::error::Error>> {
                                 "mb" => {
                                     match no_first.as_str() {
                                         "0" => {
-                                            enigo.mouse_click(MouseButton::Left);
+                                            if let Err(e) = enigo.button(Button::Left, Direction::Click) {
+                                                eprintln!("Left mouse click error: {:?}", e);
+                                            }
                                         }
                                         "1" => {
-                                            enigo.mouse_click(MouseButton::Right);
+                                            if let Err(e) = enigo.button(Button::Right, Direction::Click) {
+                                                eprintln!("Right mouse click error: {:?}", e);
+                                            }
                                         }
                                         _ => {
-                                            // "mb" の後に予期しない値が来た場合の処理 (必要であれば)
                                             eprintln!("Unknown mouse button action: {}", no_first);
                                         }
                                     }
@@ -333,53 +336,75 @@ pub async fn remote_main() -> Result<(), Box<dyn std::error::Error>> {
                                     let parts: Vec<&str> = no_first.split(',').collect();
                                     let part_x: i32 = parts.get(0).and_then(|s| s.parse::<i32>().ok()).unwrap_or(0) * 3;
                                     let part_y: i32 = parts.get(1).and_then(|s| s.parse::<i32>().ok()).unwrap_or(0) * 3;
-                                    enigo.mouse_move_relative(part_x, part_y);
+                                    if let Err(e) = enigo.move_mouse(part_x, part_y, enigo::Coordinate::Rel) {
+                                        eprintln!("Mouse move relative error: {:?}", e);
+                                    }
                                 }
                                 "mp" => {
                                     let parts: Vec<&str> = no_first.split(',').collect();
                                     let part_x_int: i32 = parts.get(0).and_then(|s| s.parse::<f64>().ok()).unwrap_or(0.0) as i32;
                                     let part_y_int: i32 = parts.get(1).and_then(|s| s.parse::<f64>().ok()).unwrap_or(0.0) as i32;
-                                    enigo.mouse_move_to(part_x_int, part_y_int);
+                                    if let Err(e) = enigo.move_mouse(part_x_int, part_y_int, enigo::Coordinate::Abs) {
+                                        eprintln!("Mouse move to error: {:?}", e);
+                                    }
                                 }
                                 "md" => {
-                                    enigo.mouse_down(MouseButton::Left);
+                                    if let Err(e) = enigo.button(Button::Left, Direction::Press) {
+                                        eprintln!("Mouse down error: {:?}", e);
+                                    }
                                     let parts: Vec<&str> = no_first.split(',').collect();
                                     let part_x: i32 = parts.get(0).and_then(|s| s.parse::<i32>().ok()).unwrap_or(0) * 3;
                                     let part_y: i32 = parts.get(1).and_then(|s| s.parse::<i32>().ok()).unwrap_or(0) * 3;
-                                    enigo.mouse_move_relative(part_x, part_y);
+                                    if let Err(e) = enigo.move_mouse(part_x, part_y, enigo::Coordinate::Rel) {
+                                        eprintln!("Mouse drag move error: {:?}", e);
+                                    }
                                 }
                                 "ms" => {
                                     let parts: Vec<&str> = no_first.split(',').collect();
                                     let part_x_int: i32 = parts.get(0).and_then(|s| s.parse::<i32>().ok()).unwrap_or(0) / 6;
                                     let part_y_int: i32 = parts.get(1).and_then(|s| s.parse::<i32>().ok()).unwrap_or(0) / 6;
-                                    enigo.mouse_scroll_x(part_x_int);
-                                    enigo.mouse_scroll_y(part_y_int);
+                                    if let Err(e) = enigo.scroll(part_x_int, enigo::Axis::Horizontal) {
+                                        eprintln!("Horizontal scroll error: {:?}", e);
+                                    }
+                                    if let Err(e) = enigo.scroll(part_y_int, enigo::Axis::Vertical) {
+                                        eprintln!("Vertical scroll error: {:?}", e);
+                                    }
                                 }
                                 "mu" => {
                                     let mut locked_left = left_m.lock().await;
                                     let mut locked_right = right_m.lock().await;
                                     if *locked_left {
-                                        println!("aa");
-                                        enigo.mouse_up(MouseButton::Left);
+                                        println!("Left mouse up");
+                                        if let Err(e) = enigo.button(Button::Left, Direction::Release) {
+                                            eprintln!("Left mouse up error: {:?}", e);
+                                        }
                                         *locked_left = false;
                                     }
                                     if *locked_right {
-                                        println!("as");
-                                        enigo.mouse_up(MouseButton::Right);
+                                        println!("Right mouse up");
+                                        if let Err(e) = enigo.button(Button::Right, Direction::Release) {
+                                            eprintln!("Right mouse up error: {:?}", e);
+                                        }
                                         *locked_right = false;
                                     }
                                 }
                                 "kp" => {
                                     let key = string_to_key(&no_first);
-                                    enigo.key_click(key);
+                                    if let Err(e) = enigo.key(key, Direction::Click) {
+                                        eprintln!("Key press error: {:?}", e);
+                                    }
                                 }
                                 "ku" => {
                                     let key = string_to_key(&no_first);
-                                    enigo.key_up(key);
+                                    if let Err(e) = enigo.key(key, Direction::Release) {
+                                        eprintln!("Key up error: {:?}", e);
+                                    }
                                 }
-                                "kd" => {
+                               "kd" => {
                                     let key = string_to_key(&no_first);
-                                    enigo.key_down(key);
+                                    if let Err(e) = enigo.key(key, Direction::Press) {
+                                        eprintln!("Key down error: {:?}", e);
+                                    }
                                 }
                                 _ => {
                                     // どのパターンにもマッチしない場合の処理
@@ -496,11 +521,34 @@ fn string_to_key(s: &str) -> Key {
         "DownArrow" => Key::DownArrow,
         "LeftArrow" => Key::LeftArrow,
         "RightArrow" => Key::RightArrow,
-        // 単一文字ならレイアウトキーとして解釈
+        // Function keys
+        "F1" => Key::F1,
+        "F2" => Key::F2,
+        "F3" => Key::F3,
+        "F4" => Key::F4,
+        "F5" => Key::F5,
+        "F6" => Key::F6,
+        "F7" => Key::F7,
+        "F8" => Key::F8,
+        "F9" => Key::F9,
+        "F10" => Key::F10,
+        "F11" => Key::F11,
+        "F12" => Key::F12,
+        // その他の特殊キー
+        "Delete" => Key::Delete,
+        "Home" => Key::Home,
+        "End" => Key::End,
+        "PageUp" => Key::PageUp,
+        "PageDown" => Key::PageDown,
+        "Insert" => Key::Insert,
+        // 単一文字
         s if s.len() == 1 => {
             let ch = s.chars().next().unwrap();
-            Key::Layout(ch)
+            Key::Unicode(ch)
         }
-        _ => panic!("Unsupported key string: {}", s),
+        _ => {
+            eprintln!("Unsupported key string: {}", s);
+            Key::Space // フォールバック
+        }
     }
 }

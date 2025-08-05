@@ -2,6 +2,7 @@ use super::certification;
 
 use enigo::{Enigo, Key, Keyboard, Mouse, Button, Settings, Direction};
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
+use winapi::um::wingdi::PRINTRATEUNIT_LPM;
 use std::fmt::format;
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -507,21 +508,36 @@ pub async fn remote_main() -> Result<(), Box<dyn std::error::Error>> {
 
 fn string_to_key(s: &str) -> Key {
     match s {
+        // 一般キー
+        "Enter" => Key::Return,
         "Return" => Key::Return,
         "Backspace" => Key::Backspace,
         "Tab" => Key::Tab,
         "Escape" => Key::Escape,
         "Space" => Key::Space,
         "CapsLock" => Key::CapsLock,
+
+        // 左右の修飾キー
         "Shift" => Key::Shift,
+        "LShift" => Key::LShift,
+        "RShift" => Key::RShift,
         "Control" => Key::Control,
+        "LControl" => Key::LControl,
+        "RControl" => Key::RControl,
         "Alt" => Key::Alt,
+        "LAlt" => Key::Alt, // LinuxとWindowsではLAltに相当
+        "RAlt" => Key::Alt, // LinuxとWindowsではRAltに相当
         "Meta" => Key::Meta,
+        "LMeta" => Key::Meta, // Windowsキーやコマンドキー
+        "RMeta" => Key::Meta, // Windowsキーやコマンドキー
+
+        // カーソルキー
         "UpArrow" => Key::UpArrow,
         "DownArrow" => Key::DownArrow,
         "LeftArrow" => Key::LeftArrow,
         "RightArrow" => Key::RightArrow,
-        // Function keys
+
+        // ファンクションキー
         "F1" => Key::F1,
         "F2" => Key::F2,
         "F3" => Key::F3,
@@ -534,21 +550,68 @@ fn string_to_key(s: &str) -> Key {
         "F10" => Key::F10,
         "F11" => Key::F11,
         "F12" => Key::F12,
-        // その他の特殊キー
+
+        // テンキー
+        "Numpad0" => Key::Numpad0,
+        "Numpad1" => Key::Numpad1,
+        "Numpad2" => Key::Numpad2,
+        "Numpad3" => Key::Numpad3,
+        "Numpad4" => Key::Numpad4,
+        "Numpad5" => Key::Numpad5,
+        "Numpad6" => Key::Numpad6,
+        "Numpad7" => Key::Numpad7,
+        "Numpad8" => Key::Numpad8,
+        "Numpad9" => Key::Numpad9,
+        "Add" => Key::Add,
+        "Subtract" => Key::Subtract,
+        "Multiply" => Key::Multiply,
+        "Divide" => Key::Divide,
+        "Decimal" => Key::Decimal,
+
+        // メディアキーとその他特殊キー
+        "PrintScr" => Key::PrintScr,
+        "Pause" => Key::Pause,
         "Delete" => Key::Delete,
+        "Insert" => Key::Insert,
         "Home" => Key::Home,
         "End" => Key::End,
         "PageUp" => Key::PageUp,
         "PageDown" => Key::PageDown,
-        "Insert" => Key::Insert,
-        // 単一文字
+        "VolumeUp" => Key::VolumeUp,
+        "VolumeDown" => Key::VolumeDown,
+        "VolumeMute" => Key::VolumeMute,
+        "MediaPlayPause" => Key::MediaPlayPause,
+        "MediaNextTrack" => Key::MediaNextTrack,
+        "MediaPrevTrack" => Key::MediaPrevTrack,
+
+        // 記号キー
+        "+" => Key::Add,
+        "-" => Key::Subtract,
+        "*" => Key::Multiply,
+        "/" => Key::Divide,
+        "." => Key::Decimal,
+
+        // 1文字のキー
         s if s.len() == 1 => {
-            let ch = s.chars().next().unwrap();
-            Key::Unicode(ch)
+            if let Some(ch) = s.chars().next() {
+                // ASCII文字は大文字に変換して処理するのが一般的です
+                // 例えば、"a"も"A"も同じキーとして扱いたい場合
+                // if ch.is_ascii_alphabetic() {
+                //     Key::Unicode(ch.to_ascii_uppercase())
+                // } else {
+                //     Key::Unicode(ch)
+                // }
+                Key::Unicode(ch)
+            } else {
+                eprintln!("⚠️ 1文字が取得できませんでした: {:?}", s);
+                Key::Space
+            }
         }
+
+        // 未知のキー
         _ => {
-            eprintln!("Unsupported key string: {}", s);
-            Key::Space // フォールバック
+            eprintln!("❌ サポートされていないキー文字列: {}", s);
+            Key::Space
         }
     }
 }

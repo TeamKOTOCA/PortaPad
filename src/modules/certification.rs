@@ -71,8 +71,7 @@ pub fn certification(signature: String, private_key: String, public_key: String,
             return Ok(());
         }
         Err(e) => {
-            eprintln!("❌ 検証失敗: {}", e);
-            makeQR(private_key.to_string());
+            eprintln!("❌ 検証失敗(認証コードが違います): {}", e);
             return Err(1);
         }
     }
@@ -144,7 +143,6 @@ pub fn makeQR(private_key_from_config: String) -> Result<(), Box<dyn Error>> {
         background_height,
         WindowOptions::default(),
     )?;
-    println!("viewed");
 
     let start_time = Instant::now();
     let display_duration = Duration::from_secs(10);

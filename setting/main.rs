@@ -65,36 +65,9 @@ impl eframe::App for MyApp {
                 ui.text_edit_singleline(&mut self.sig_url_sec);
             });
             ui.separator();
-            ui.heading("許可済みクライアントリスト");
-            egui::ScrollArea::vertical()
-                .auto_shrink([false, false])
-                .hscroll(false) 
-                .show(ui, |ui| {
-                    ui.label("[削除]で許可を取り消します。");
-                    egui::Grid::new("my_grid")
-                    .num_columns(2)
-                    .spacing([40.0, 4.0])
-                    .show(ui, |ui| {
-                        let mut clients: Vec<String> = vec!["クライアントが見つかりませんでした。".to_string()];
-                        match read_lines_from_file(APPDATA.join("clients_list.txt")) {
-                            Ok(lines) => {
-                                if lines.len() >= 1 {
-                                    clients = lines;
-                                }
-                            }
-                            Err(e) => {
-                                eprintln!("ファイルの読み込み中にエラーが発生しました: {}", e);
-                            }
-                        }
-                        for client in &clients {
-                            ui.label(client);
-                            if *client != "クライアントが見つかりませんでした。".to_string() && ui.button("削除").clicked() {
-                                remove_client(client.as_str());
-                            }
-                            ui.end_row();
-                        }
-                    });
-            });
+            ui.heading("コードのリセット");
+            ui.label("不正アクセスが発覚した場合に実行してください。");
+            ui.label("※全てのクライアントの接続が取り消されます");
         });
         TopBottomPanel::bottom("bottom_panel").show(ctx, |ui| {
                 ui.horizontal(|ui| {

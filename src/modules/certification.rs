@@ -12,6 +12,8 @@ use ed25519_dalek::{
 use base64::{engine::general_purpose, Engine};
 use std::convert::TryInto;
 
+use crate::open_setting;
+
 pub fn certification(signature: String, private_key: String, public_key: String, pc_code: String) -> Result<(), i32> {
     println!("📨 code（署名対象）: {}", pc_code);
     println!("📨 publickey: {}", public_key);
@@ -137,11 +139,14 @@ pub fn makeQR(private_key_from_config: String) -> Result<(), Box<dyn Error>> {
     let background_width = background_img.width() as usize;
     let background_height = background_img.height() as usize;
 
+    let mut options = WindowOptions::default();
+    options.topmost = true;
+
     let mut window = Window::new(
         "Portapad認証システム",
         background_width,
         background_height,
-        WindowOptions::default(),
+        options,
     )?;
 
     let start_time = Instant::now();

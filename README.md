@@ -33,3 +33,5 @@ Portapadはついに**正式版**としてリリースされました!
 
 
 最後に、私に作る時間を与えてくれた両親、期待してくれた人々、アドバイスをくれた人々、それに私が開発するために使ったツールの開発者たち(Windows,Ubuntu,Github,ChatGPT,Gemini,VScode,Rust,Nodejs,C#、その他諸々の開発者の方々)、そして使用者の皆様に大いなる敬意を表します。
+
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/TeamKOTOCA/PortaPad)

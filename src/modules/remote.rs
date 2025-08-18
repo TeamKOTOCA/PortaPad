@@ -524,6 +524,7 @@ fn string_to_key(s: &str) -> Key {
         "Control" => Key::Control,
         "LControl" => Key::LControl,
         "RControl" => Key::RControl,
+        "Kana" => Key::Kana,
         "Alt" => Key::Alt,
         "LAlt" => Key::Alt, // LinuxとWindowsではLAltに相当
         "RAlt" => Key::Alt, // LinuxとWindowsではRAltに相当
@@ -575,6 +576,7 @@ fn string_to_key(s: &str) -> Key {
         "Insert" => Key::Insert,
         "Home" => Key::Home,
         "End" => Key::End,
+        "NumLock" => Key::Numlock,
         "PageUp" => Key::PageUp,
         "PageDown" => Key::PageDown,
         "VolumeUp" => Key::VolumeUp,

@@ -524,13 +524,18 @@ fn string_to_key(s: &str) -> Key {
         "Control" => Key::Control,
         "LControl" => Key::LControl,
         "RControl" => Key::RControl,
-        "Kana" => Key::Kana,
         "Alt" => Key::Alt,
-        "LAlt" => Key::Alt, // LinuxとWindowsではLAltに相当
-        "RAlt" => Key::Alt, // LinuxとWindowsではRAltに相当
+        "LAlt" => Key::Alt,
+        "RAlt" => Key::Alt,
         "Meta" => Key::Meta,
-        "LMeta" => Key::Meta, // Windowsキーやコマンドキー
-        "RMeta" => Key::Meta, // Windowsキーやコマンドキー
+        "LMeta" => Key::Meta,
+        "RMeta" => Key::Meta,
+
+        //日本語キーボード独特のキー
+        "Kana" => Key::Kana,
+        "Convert" => Key::Convert,
+        "NonConvert" => Key::NonConvert,
+        "HanZen" => Key::OEM3,
 
         // カーソルキー
         "UpArrow" => Key::UpArrow,
@@ -598,12 +603,11 @@ fn string_to_key(s: &str) -> Key {
             if let Some(ch) = s.chars().next() {
                 // ASCII文字は大文字に変換して処理するのが一般的です
                 // 例えば、"a"も"A"も同じキーとして扱いたい場合
-                // if ch.is_ascii_alphabetic() {
-                //     Key::Unicode(ch.to_ascii_uppercase())
-                // } else {
-                //     Key::Unicode(ch)
-                // }
-                Key::Unicode(ch)
+                if ch.is_ascii_alphabetic() {
+                    Key::Unicode(ch.to_ascii_uppercase())
+                } else {
+                    Key::Unicode(ch)
+                }
             } else {
                 eprintln!("⚠️ 1文字が取得できませんでした: {:?}", s);
                 Key::Space

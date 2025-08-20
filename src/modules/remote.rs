@@ -280,14 +280,6 @@ pub async fn remote_main() -> Result<(), Box<dyn std::error::Error>> {
             let notify = notify.clone();
             dc.on_close(Box::new(move || {
                 println!("DataChannel closed!");
-                Notification::new()
-                    .summary("切断通知")
-                    .body("クライアントとの接続が切断されました")
-                    .timeout(8000)
-                    .appname("PortapadSystem")
-                    .show()
-                    .unwrap();
-                    notify.notify_one();
 
                 Box::pin(async move {
                     println!("DataChannel close完了");

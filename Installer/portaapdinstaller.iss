@@ -31,7 +31,7 @@ ArchitecturesInstallIn64BitMode=x64compatible
 DisableProgramGroupPage=yes
 ; Uncomment the following line to run in non administrative install mode (install for current user only).
 ;PrivilegesRequired=lowest
-OutputBaseFilename=mysetup
+OutputBaseFilename=Portapad_installer
 SolidCompression=yes
 WizardStyle=modern
 WizardSmallImageFile=C:\Users\anill\Desktop\portapad\portapad_web\assets\portapadinstaller.bmp

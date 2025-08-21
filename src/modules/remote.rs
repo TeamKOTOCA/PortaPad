@@ -20,7 +20,6 @@ use std::sync::LazyLock;
 use tokio::signal;
 use std::{env, fs, path::PathBuf};
 use tokio::time::{interval, Duration};
-use std::thread;
 
 //認証しているかを保持する変数。false = 未認証、true = 認証済み（操作処理を受け付ける）
 static mut IsCerted: bool = false;

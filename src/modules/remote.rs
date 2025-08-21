@@ -20,9 +20,11 @@ use std::sync::LazyLock;
 use tokio::signal;
 use std::{env, fs, path::PathBuf};
 use tokio::time::{interval, Duration};
+use std::sync::{atomic::{AtomicBool, Ordering}};
+use once_cell::sync::Lazy;
 
 //認証しているかを保持する変数。false = 未認証、true = 認証済み（操作処理を受け付ける）
-static mut IsCerted: bool = false;
+static IsCerted: Lazy<Arc<AtomicBool>> = Lazy::new(|| Arc::new(AtomicBool::new(false)));
 
 #[derive(Serialize)]
 struct IceCandidateMsg {
@@ -308,7 +310,7 @@ pub async fn remote_main() -> Result<(), Box<dyn std::error::Error>> {
                     let no_first: String = text.chars().skip(2).collect();
 
                     unsafe{
-                        if IsCerted {
+                        if IsCerted.load(Ordering::Relaxed) {
                             match first_two.as_str() {
                                 "pg" => {
                                     // 多分ページ？だったはず。クライアントがどのページを触ってたか。使わないっぽい
@@ -417,7 +419,7 @@ pub async fn remote_main() -> Result<(), Box<dyn std::error::Error>> {
                             match certification::certification(no_first, CONFIG.privatekey.clone(), CONFIG.publickey.clone(), CONFIG.pc_code.clone()) {
                                 Ok(()) => {
                                     println!("✅ 署名検証に成功しました！");
-                                    IsCerted = true;
+                                    IsCerted.store(true, Ordering::Relaxed);
                                 }
                                 Err(code) => {
                                     eprintln!("❌ 検証失敗");

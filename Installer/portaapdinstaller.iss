@@ -2,7 +2,7 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "Portapad"
-#define MyAppVersion "2.0.1"
+#define MyAppVersion "2.0.2"
 #define MyAppPublisher "TeamKOTOCA"
 #define MyAppURL "https://portapad.kotoca.net"
 #define MyAppExeName "setting.exe"

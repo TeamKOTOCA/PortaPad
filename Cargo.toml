@@ -37,6 +37,7 @@ ed25519-dalek = { version = "2.2.0", features = ["rand_core", "serde", "pkcs8", 
 rand = "0.8.5"
 rand_core = "0.6.4"
 pkcs8 = "0.10"
+windows-dpapi = "0.1.0"
 
 [[bin]]
 name = "Portapad"

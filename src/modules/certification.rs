@@ -11,15 +11,17 @@ use ed25519_dalek::{
 };
 use base64::{engine::general_purpose, Engine};
 use std::convert::TryInto;
+use windows_dpapi::{encrypt_data, decrypt_data, Scope};
 
 use crate::open_setting;
 
 pub fn certification(signature: String, private_key: String, public_key: String, pc_code: String) -> Result<(), i32> {
+    /*
     println!("📨 code（署名対象）: {}", pc_code);
     println!("📨 publickey: {}", public_key);
     println!("📨 privatekey: {}", private_key);
     println!("📨 signature: {}", signature);
-
+     */
 
     // Base64デコード（署名）
     let signature_bytes = match general_purpose::STANDARD.decode(&signature) {
@@ -83,9 +85,25 @@ pub fn certification(signature: String, private_key: String, public_key: String,
 pub fn makeQR(private_key_from_config: String) -> Result<(), Box<dyn Error>> {
         const CERT_BG_IMG: &[u8] = include_bytes!("cert_bg_sec.png");
     let mut background_img = image::load_from_memory(CERT_BG_IMG)?.to_rgba8();
+    println!("📨 privatekey: {}", private_key_from_config);
 
-    let private_key = private_key_from_config;
-    let content = private_key.as_str();
+    let encrypted_bytes = general_purpose::STANDARD.decode(&private_key_from_config)
+        .expect("base64 decode failed");
+
+    let decrypted_bytes = decrypt_data(&encrypted_bytes, Scope::User)
+        .expect("decrypt failed");
+
+    let key_bytes: [u8; 32] = decrypted_bytes
+        .as_slice()
+        .try_into()
+        .expect("invalid key length");
+
+    let signing_key = SigningKey::from_bytes(&key_bytes);
+    let verifying_key = signing_key.verifying_key();
+
+// QRコード用に base64 化する場合
+let content = base64::encode(signing_key.to_bytes());
+
     let error_correction = QrCodeEcc::High;
     let module_size = 4;
     let margin = 4;

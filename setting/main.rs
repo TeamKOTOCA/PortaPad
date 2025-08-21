@@ -17,6 +17,7 @@ use ed25519_dalek::{
     SigningKey, VerifyingKey,
     pkcs8::{EncodePublicKey, DecodePublicKey},
 };
+use windows_dpapi::{encrypt_data, decrypt_data, Scope};
 
 #[derive(Deserialize, Serialize, Debug, Default)]
 struct Config {
@@ -55,7 +56,8 @@ impl eframe::App for MyApp {
     fn update(&mut self, ctx: &Context, _frame: &mut eframe::Frame) {
         CentralPanel::default().show(ctx, |ui| {
             ui.heading("シグナリングサーバー");
-            ui.label("ws://やhttps://などは書かないでください。");
+            ui.label("基本的に触る必要はありません");
+            ui.label("ws://example.com → example.com");
             ui.horizontal(|ui| {
                 ui.label("シグナリングサーバーURL：");
                 ui.text_edit_singleline(&mut self.sig_url);
@@ -110,18 +112,27 @@ impl eframe::App for MyApp {
                                     .collect();
                                 config.pc_code = pc_code.to_string();
                             }
-                            if config.privatekey == "" {
+                            if config.privatekey.is_empty() {
+                                // 鍵生成
                                 let mut csprng = OsRng;
                                 let signing_key = SigningKey::generate(&mut csprng);
                                 let verifying_key: VerifyingKey = signing_key.verifying_key();
 
-                                config.privatekey = base64::encode(signing_key.to_bytes());       // 秘密鍵（32バイト）
-                                config.publickey = base64::encode(verifying_key.to_bytes());     // 公開鍵（32バイト）
+                                // 秘密鍵を DPAPI で暗号化して base64 化
+                                let encrypted = encrypt_data(&signing_key.to_bytes(), Scope::User)
+                                    .expect("DPAPI暗号化失敗");
+                                config.privatekey = base64::encode(encrypted);
+
+                                // 公開鍵はそのまま保存でOK
+                                config.publickey = base64::encode(verifying_key.to_bytes());
                             }
-                            fs::write(APPDATA.join("config.toml"), toml::to_string_pretty(&config).unwrap()).unwrap();
+                            fs::write(
+                                APPDATA.join("config.toml"),
+                                toml::to_string_pretty(&config).unwrap()
+                            ).unwrap();
                             
                             // Portapadを再起動
-                            let _ = Command::new("C:\\Program Files\\PortaPad\\PortaPad.exe")
+                            let _ = Command::new("C:\\Program Files\\Portapad\\PortaPad.exe")
                                 .spawn();
 
                             std::process::exit(0);

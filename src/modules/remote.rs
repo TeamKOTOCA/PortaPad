@@ -2,8 +2,6 @@ use super::certification;
 
 use enigo::{Enigo, Key, Keyboard, Mouse, Button, Settings, Direction};
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
-use winapi::um::wingdi::PRINTRATEUNIT_LPM;
-use std::fmt::format;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use tokio::sync::mpsc;
@@ -22,6 +20,7 @@ use std::sync::LazyLock;
 use tokio::signal;
 use std::{env, fs, path::PathBuf};
 use tokio::time::{interval, Duration};
+use std::thread;
 
 //認証しているかを保持する変数。false = 未認証、true = 認証済み（操作処理を受け付ける）
 static mut IsCerted: bool = false;
@@ -230,12 +229,16 @@ pub async fn remote_main() -> Result<(), Box<dyn std::error::Error>> {
     let left_m_m = left_m.clone();
     let right_m_m = right_m.clone();
 
+    // Enigoインスタンスを一度だけ作成し、ArcとMutexでラップする
+    let enigo_mutex = Arc::new(Mutex::new(Enigo::new(&Settings::default()).unwrap()));
+
     peer_connection.on_data_channel(Box::new(move |dc| {
         println!("DataChannel received: {}", dc.label());
         let right_m = Arc::clone(&right_m_m);
         let left_m = Arc::clone(&left_m_m);
         let notify = notify_for_dc.clone();
         let write = write_for_close.clone();
+        let enigo_mutex = Arc::clone(&enigo_mutex); // MutexをArcで共有する
 
         Box::pin(async move {
             // クローンして move で使う
@@ -280,13 +283,15 @@ pub async fn remote_main() -> Result<(), Box<dyn std::error::Error>> {
             let notify = notify.clone();
             dc.on_close(Box::new(move || {
                 println!("DataChannel closed!");
+                notify.notify_one();
 
                 Box::pin(async move {
                     println!("DataChannel close完了");
                 })
             }));
+    
+            let enigo_clone = Arc::clone(&enigo_mutex); // MutexをArcで共有する
 
-            let dc_clone2 = Arc::clone(&dc);
             dc.on_message(Box::new(move |msg| {
 
                 println!("Received: {:?}", String::from_utf8_lossy(&msg.data));
@@ -294,9 +299,10 @@ pub async fn remote_main() -> Result<(), Box<dyn std::error::Error>> {
                 let right_m = Arc::clone(&right_m);
                 let left_m = Arc::clone(&left_m);
                 let dc_for_send = Arc::clone(&dc_for_send);
+                let enigo_clone = Arc::clone(&enigo_clone);
                 Box::pin(async move {
-                    //操作モジュールのenigo初期化
-                    let mut enigo = Enigo::new(&Settings::default()).unwrap();
+                // MutexをロックしてEnigoインスタンスにアクセス
+                let mut enigo = enigo_clone.lock().await;
                     
                     let text = String::from_utf8_lossy(&msg_data);
                     let first_two: String = text.chars().take(2).collect();
@@ -393,7 +399,7 @@ pub async fn remote_main() -> Result<(), Box<dyn std::error::Error>> {
                                         eprintln!("Key up error: {:?}", e);
                                     }
                                 }
-                               "kd" => {
+                                "kd" => {
                                     let key = string_to_key(&no_first);
                                     if let Err(e) = enigo.key(key, Direction::Press) {
                                         eprintln!("Key down error: {:?}", e);

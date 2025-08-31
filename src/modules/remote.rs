@@ -415,6 +415,12 @@ pub async fn remote_main() -> Result<(), Box<dyn std::error::Error>> {
                             }
                             
                         }else{
+                            if first_two == "cc" {
+                                // portapadプロセスを強制終了
+                                let _ = Command::new("taskkill")
+                                    .args(["/IM", "certqr.exe", "/F"])
+                                    .output();
+                            }
                             //認証処理
                             //第一引数から、送られてきた認証コード、設定されてるプライベートキー、設定されてるパブリックキー、PCコード
                             match certification::certification(no_first, CONFIG.privatekey.clone(), CONFIG.publickey.clone(), CONFIG.pc_code.clone()) {

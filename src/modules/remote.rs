@@ -23,6 +23,7 @@ use tokio::time::{interval, Duration};
 use std::sync::{atomic::{AtomicBool, Ordering}};
 use once_cell::sync::Lazy;
 use std::process::Command;
+use std::thread;
 
 //認証しているかを保持する変数。false = 未認証、true = 認証済み（操作処理を受け付ける）
 static IsCerted: Lazy<Arc<AtomicBool>> = Lazy::new(|| Arc::new(AtomicBool::new(false)));
@@ -414,13 +415,12 @@ pub async fn remote_main() -> Result<(), Box<dyn std::error::Error>> {
                                 }
                             }
                             
+                        }else if first_two == "cc" {
+                            // portapadプロセスを強制終了
+                            let _ = Command::new("taskkill")
+                                .args(["/IM", "certqr.exe", "/F"])
+                                .output();
                         }else{
-                            if first_two == "cc" {
-                                // portapadプロセスを強制終了
-                                let _ = Command::new("taskkill")
-                                    .args(["/IM", "certqr.exe", "/F"])
-                                    .output();
-                            }
                             //認証処理
                             //第一引数から、送られてきた認証コード、設定されてるプライベートキー、設定されてるパブリックキー、PCコード
                             match certification::certification(no_first, CONFIG.privatekey.clone(), CONFIG.publickey.clone(), CONFIG.pc_code.clone()) {
@@ -443,6 +443,10 @@ pub async fn remote_main() -> Result<(), Box<dyn std::error::Error>> {
                                         let mut child = Command::new(exe_path) 
                                             .spawn()
                                             .expect("認証画面起動失敗"); 
+                                        // 別スレッドで wait してゾンビ化を防ぐ
+                                        thread::spawn(move || {
+                                            let _ = child.wait();
+                                        });
                                     });
                                 }
                             }

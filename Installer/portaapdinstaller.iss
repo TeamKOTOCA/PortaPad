@@ -10,7 +10,7 @@
 [Setup]
 ; NOTE: The value of AppId uniquely identifies this application. Do not use the same AppId value in installers for other applications.
 ; (To generate a new GUID, click Tools | Generate GUID inside the IDE.)
-AppId={{DA36D2EF-10DD-4B90-9068-26E059DA2464}
+AppId={{DA36D2EF-10DD-4B90-9068-26E059DA2464}}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 ;AppVerName={#MyAppName} {#MyAppVersion}
@@ -48,6 +48,7 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 [Files]
 Source: "C:\Users\anill\Desktop\portapad\PortaPad\target\release\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
 Source: "C:\Users\anill\Desktop\portapad\PortaPad\target\release\Portapad.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\Users\anill\Desktop\portapad\PortaPad\target\release\certqr.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "C:\Users\anill\Desktop\portapad\portapad_web\assets\portapad.ico"; DestDir: "{app}";
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 

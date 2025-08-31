@@ -47,5 +47,9 @@ path = "src/main.rs"
 name = "setting"
 path = "setting/main.rs"
 
+[[bin]]
+name = "certqr"
+path = "certqr/main.rs"
+
 [profile.release]
 panic = "abort"

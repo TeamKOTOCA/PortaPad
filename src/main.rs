@@ -1,4 +1,4 @@
-// #![windows_subsystem = "windows"]
+#![windows_subsystem = "windows"]
 mod modules;
 use tokio;
 use std::{env, fs, path::PathBuf};
@@ -17,8 +17,12 @@ fn get_config_path() -> PathBuf {
 
 
 fn open_setting(){
-        // GUIサブプロセスを起動
-    let mut child = Command::new("target/debug/setting.exe") 
+    let exe_path = env::current_exe()
+    .unwrap()
+    .parent().unwrap()
+    .join("setting.exe");
+    // GUIサブプロセスを起動
+    let mut child = Command::new(exe_path) 
         .spawn()
         .expect("設定画面起動失敗");
 

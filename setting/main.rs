@@ -3,21 +3,21 @@
     windows_subsystem = "windows"
 )]
 
-use eframe::{egui::*, NativeOptions};
-use eframe::egui;
-use std::fs;
-use std::io;
-use once_cell::sync::Lazy;
-use std::path::PathBuf;
-use serde::{Deserialize, Serialize};
-use std::process::Command;
-use rand::{Rng, distributions::Alphanumeric};
-use rand::rngs::OsRng;
 use ed25519_dalek::{
     SigningKey, VerifyingKey,
-    pkcs8::{EncodePublicKey, DecodePublicKey},
+    pkcs8::{DecodePublicKey, EncodePublicKey},
 };
-use windows_dpapi::{encrypt_data, decrypt_data, Scope};
+use eframe::egui;
+use eframe::{NativeOptions, egui::*};
+use once_cell::sync::Lazy;
+use rand::rngs::OsRng;
+use rand::{Rng, distributions::Alphanumeric};
+use serde::{Deserialize, Serialize};
+use std::fs;
+use std::io;
+use std::path::PathBuf;
+use std::process::Command;
+use windows_dpapi::{Scope, decrypt_data, encrypt_data};
 
 #[derive(Deserialize, Serialize, Debug, Default)]
 struct Config {
@@ -37,11 +37,22 @@ pub static APPDATA: Lazy<PathBuf> = Lazy::new(|| {
 
 fn setup_custom_fonts(ctx: &egui::Context) {
     let mut fonts = egui::FontDefinitions::default();
-    let font_data = std::fs::read("C:\\Windows\\Fonts\\meiryo.ttc")
-        .expect("フォントファイルが読み込めません");
-    fonts.font_data.insert("jp".to_owned(), egui::FontData::from_owned(font_data).into());
-    fonts.families.get_mut(&egui::FontFamily::Proportional).unwrap().insert(0, "jp".to_owned());
-    fonts.families.get_mut(&egui::FontFamily::Monospace).unwrap().insert(0, "jp".to_owned());
+    let font_data =
+        std::fs::read("C:\\Windows\\Fonts\\meiryo.ttc").expect("フォントファイルが読み込めません");
+    fonts.font_data.insert(
+        "jp".to_owned(),
+        egui::FontData::from_owned(font_data).into(),
+    );
+    fonts
+        .families
+        .get_mut(&egui::FontFamily::Proportional)
+        .unwrap()
+        .insert(0, "jp".to_owned());
+    fonts
+        .families
+        .get_mut(&egui::FontFamily::Monospace)
+        .unwrap()
+        .insert(0, "jp".to_owned());
     ctx.set_fonts(fonts);
 }
 
@@ -77,82 +88,82 @@ impl eframe::App for MyApp {
                 };
                 config.privatekey = "".to_string();
                 config.publickey = "".to_string();
-                fs::write(APPDATA.join("config.toml"), toml::to_string_pretty(&config).unwrap()).unwrap();
-
+                fs::write(
+                    APPDATA.join("config.toml"),
+                    toml::to_string_pretty(&config).unwrap(),
+                )
+                .unwrap();
             }
         });
         TopBottomPanel::bottom("bottom_panel").show(ctx, |ui| {
-                ui.horizontal(|ui| {
-                    ui.label("Portapad v2.1.1");
-                    ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                        if ui.button("キャンセル").clicked() {
-                            // Portapadを再起動
-                            let _ = Command::new("C:\\Program Files\\PortaPad\\PortaPad.exe")
-                                .spawn();
+            ui.horizontal(|ui| {
+                ui.label("Portapad v2.1.1");
+                ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                    if ui.button("キャンセル").clicked() {
+                        // Portapadを再起動
+                        let _ = Command::new("C:\\Program Files\\PortaPad\\PortaPad.exe").spawn();
 
-                            std::process::exit(0);
-                        }
-                        if ui.button("保存").clicked() {
-                            let mut config: Config = match fs::read_to_string(APPDATA.join("config.toml")) {
+                        std::process::exit(0);
+                    }
+                    if ui.button("保存").clicked() {
+                        let mut config: Config =
+                            match fs::read_to_string(APPDATA.join("config.toml")) {
                                 Ok(toml_str) => toml::from_str(&toml_str).unwrap_or_default(),
                                 Err(_) => Config::default(),
                             };
-                            if !self.sig_url.is_empty() {
-                                config.sigserver = self.sig_url.clone();
-                            }
-                            if !self.sig_url_sec.is_empty() {
-                                config.sec_sigserver = self.sig_url_sec.clone();
-                            }
-                            if config.pc_code == "" {
-                                //ランダムなコードをPCの一意コードとして登録。クライアントからホストを識別する
-                                let pc_code: String = rand::thread_rng() // スレッドごとの乱数ジェネレーターを取得
-                                    .sample_iter(&Alphanumeric) // 英数字をランダムに生成するイテレータ
-                                    .take(64) // 指定された長さだけ取得
-                                    .map(char::from) // char に変換
-                                    .collect();
-                                config.pc_code = pc_code.to_string();
-                            }
-                            if config.privatekey.is_empty() {
-                                // 鍵生成
-                                let mut csprng = OsRng;
-                                let signing_key = SigningKey::generate(&mut csprng);
-                                let verifying_key: VerifyingKey = signing_key.verifying_key();
-
-                                // 秘密鍵を DPAPI で暗号化して base64 化
-                                let encrypted = encrypt_data(&signing_key.to_bytes(), Scope::User)
-                                    .expect("DPAPI暗号化失敗");
-                                config.privatekey = base64::encode(encrypted);
-
-                                // 公開鍵はそのまま保存でOK
-                                config.publickey = base64::encode(verifying_key.to_bytes());
-                            }
-                            fs::write(
-                                APPDATA.join("config.toml"),
-                                toml::to_string_pretty(&config).unwrap()
-                            ).unwrap();
-                            
-                            // Portapadを再起動
-                            let _ = Command::new("C:\\Program Files\\Portapad\\PortaPad.exe")
-                                .spawn();
-
-                            std::process::exit(0);
+                        if !self.sig_url.is_empty() {
+                            config.sigserver = self.sig_url.clone();
                         }
-                    });
+                        if !self.sig_url_sec.is_empty() {
+                            config.sec_sigserver = self.sig_url_sec.clone();
+                        }
+                        if config.pc_code == "" {
+                            //ランダムなコードをPCの一意コードとして登録。クライアントからホストを識別する
+                            let pc_code: String = rand::thread_rng() // スレッドごとの乱数ジェネレーターを取得
+                                .sample_iter(&Alphanumeric) // 英数字をランダムに生成するイテレータ
+                                .take(64) // 指定された長さだけ取得
+                                .map(char::from) // char に変換
+                                .collect();
+                            config.pc_code = pc_code.to_string();
+                        }
+                        if config.privatekey.is_empty() {
+                            // 鍵生成
+                            let mut csprng = OsRng;
+                            let signing_key = SigningKey::generate(&mut csprng);
+                            let verifying_key: VerifyingKey = signing_key.verifying_key();
+
+                            // 秘密鍵を DPAPI で暗号化して base64 化
+                            let encrypted = encrypt_data(&signing_key.to_bytes(), Scope::User)
+                                .expect("DPAPI暗号化失敗");
+                            config.privatekey = base64::encode(encrypted);
+
+                            // 公開鍵はそのまま保存でOK
+                            config.publickey = base64::encode(verifying_key.to_bytes());
+                        }
+                        fs::write(
+                            APPDATA.join("config.toml"),
+                            toml::to_string_pretty(&config).unwrap(),
+                        )
+                        .unwrap();
+
+                        // Portapadを再起動
+                        let _ = Command::new("C:\\Program Files\\Portapad\\PortaPad.exe").spawn();
+
+                        std::process::exit(0);
+                    }
                 });
             });
+        });
     }
 }
 
-fn remove_client(client_name: &str){
+fn remove_client(client_name: &str) {
     println!("{}", client_name);
-        // 1. ファイルから全ての行を読み込む
+    // 1. ファイルから全ての行を読み込む
     let content = fs::read_to_string(APPDATA.join("clients_list.txt")).unwrap();
 
     // 読み込んだ文字列を改行で分割し、可変なVec<String>に収集する
-    let mut lines: Vec<String> = content
-        .lines()
-        .map(|s| s.to_string())
-        .collect();
+    let mut lines: Vec<String> = content.lines().map(|s| s.to_string()).collect();
 
     // 2. 指定した要素を探して削除する
     // `retain` メソッドは、クロージャが `true` を返す要素だけを残します。
@@ -197,8 +208,7 @@ fn main() {
             Ok(Box::<MyApp>::default())
         }),
     );
-    
+
     // Portapadを再起動
-    let _ = Command::new("C:\\Program Files\\PortaPad\\PortaPad.exe")
-        .spawn();
+    let _ = Command::new("C:\\Program Files\\PortaPad\\PortaPad.exe").spawn();
 }

@@ -1,9 +1,8 @@
 #![windows_subsystem = "windows"]
 mod modules;
-use tokio;
-use std::{env, fs, path::PathBuf};
 use std::process::Command;
-
+use std::{env, fs, path::PathBuf};
+use tokio;
 
 fn get_config_path() -> PathBuf {
     let mut path = env::var_os("APPDATA")
@@ -15,16 +14,14 @@ fn get_config_path() -> PathBuf {
     path
 }
 
-
-fn open_setting(){
+fn open_setting() {
     let exe_path = env::current_exe()
-    .unwrap()
-    .parent().unwrap()
-    .join("setting.exe");
+        .unwrap()
+        .parent()
+        .unwrap()
+        .join("setting.exe");
     // GUIサブプロセスを起動
-    let mut child = Command::new(exe_path) 
-        .spawn()
-        .expect("設定画面起動失敗");
+    let mut child = Command::new(exe_path).spawn().expect("設定画面起動失敗");
 
     println!("設定画面を別プロセスで起動しました");
 
@@ -34,7 +31,7 @@ fn open_setting(){
 }
 
 #[tokio::main]
-async fn main(){
+async fn main() {
     let config_path = get_config_path();
     if !config_path.exists() {
         open_setting();

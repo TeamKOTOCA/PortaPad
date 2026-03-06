@@ -1,20 +1,20 @@
-use minifb::{Key as MinifbKey, Window, WindowOptions};
-use image::{RgbaImage, ImageBuffer, Rgba, GenericImage};
-use qrcode_generator::QrCodeEcc;
-use std::time::{Duration, Instant};
-use std::error::Error;
-use rand::rngs::OsRng;
-use pkcs8::EncodePrivateKey;
-use windows_dpapi::{encrypt_data, decrypt_data, Scope};
+use base64::{Engine, engine::general_purpose};
 use ed25519_dalek::{
-    SigningKey, VerifyingKey, Signature, Signer, Verifier,
-    pkcs8::{EncodePublicKey, DecodePublicKey},
+    Signature, Signer, SigningKey, Verifier, VerifyingKey,
+    pkcs8::{DecodePublicKey, EncodePublicKey},
 };
-use base64::{engine::general_purpose, Engine};
-use std::convert::TryInto;
+use image::{GenericImage, ImageBuffer, Rgba, RgbaImage};
+use minifb::{Key as MinifbKey, Window, WindowOptions};
+use pkcs8::EncodePrivateKey;
+use qrcode_generator::QrCodeEcc;
+use rand::rngs::OsRng;
 use serde::Deserialize;
+use std::convert::TryInto;
+use std::error::Error;
 use std::sync::LazyLock;
+use std::time::{Duration, Instant};
 use std::{env, fs, path::PathBuf};
+use windows_dpapi::{Scope, decrypt_data, encrypt_data};
 
 //config.toml(設定ファイル)の型
 #[derive(Deserialize, Debug)]
@@ -30,9 +30,12 @@ pub static CONFIG: LazyLock<Config> = LazyLock::new(|| {
     let config_path = get_config_path();
     let config_str = fs::read_to_string(&config_path)
         // エラーメッセージを改善し、どのファイルが読み込めなかったかを示すようにしています
-        .expect(&format!("設定ファイルの読み込みに失敗しました: {:?}", config_path));
-    let setting_config: Config = toml::from_str(&config_str)
-        .expect("TOML形式の設定ファイルのパースに失敗しました");
+        .expect(&format!(
+            "設定ファイルの読み込みに失敗しました: {:?}",
+            config_path
+        ));
+    let setting_config: Config =
+        toml::from_str(&config_str).expect("TOML形式の設定ファイルのパースに失敗しました");
     setting_config
 });
 
@@ -51,11 +54,11 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut background_img = image::load_from_memory(CERT_BG_IMG)?.to_rgba8();
     println!("📨 privatekey: {}", CONFIG.privatekey);
 
-    let encrypted_bytes = general_purpose::STANDARD.decode(&CONFIG.privatekey)
+    let encrypted_bytes = general_purpose::STANDARD
+        .decode(&CONFIG.privatekey)
         .expect("base64 decode failed");
 
-    let decrypted_bytes = decrypt_data(&encrypted_bytes, Scope::User)
-        .expect("decrypt failed");
+    let decrypted_bytes = decrypt_data(&encrypted_bytes, Scope::User).expect("decrypt failed");
 
     let key_bytes: [u8; 32] = decrypted_bytes
         .as_slice()
@@ -86,14 +89,16 @@ fn main() -> Result<(), Box<dyn Error>> {
         for x in 0..image_width {
             let mut is_dark = false;
 
-            if x >= (margin * module_size) && x < ((margin + qr_width) * module_size) &&
-               y >= (margin * module_size) && y < ((margin + qr_height) * module_size) {
-                
+            if x >= (margin * module_size)
+                && x < ((margin + qr_width) * module_size)
+                && y >= (margin * module_size)
+                && y < ((margin + qr_height) * module_size)
+            {
                 let qr_x = (x - margin * module_size) / module_size;
                 let qr_y = (y - margin * module_size) / module_size;
 
                 if qr_y < qr_height && qr_x < qr_width {
-                    is_dark = qrcode_matrix[qr_y][qr_x]; 
+                    is_dark = qrcode_matrix[qr_y][qr_x];
                 }
             }
 
@@ -108,7 +113,8 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     background_img.copy_from(&img, 100, 170)?;
 
-    let mut buffer: Vec<u32> = Vec::with_capacity(background_img.width() as usize * background_img.height() as usize);
+    let mut buffer: Vec<u32> =
+        Vec::with_capacity(background_img.width() as usize * background_img.height() as usize);
     for pixel in background_img.pixels() {
         let r = pixel[0] as u32;
         let g = pixel[1] as u32;

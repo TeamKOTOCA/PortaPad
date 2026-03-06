@@ -38,6 +38,9 @@ rand = "0.8.5"
 rand_core = "0.6.4"
 pkcs8 = "0.10"
 windows-dpapi = "0.1.0"
+cpal = "0.17"
+bytes = "1.6"
+num-traits = "0.2"
 
 [[bin]]
 name = "Portapad"

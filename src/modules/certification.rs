@@ -1,13 +1,18 @@
+use base64::{Engine, engine::general_purpose};
 use ed25519_dalek::{
-    SigningKey, VerifyingKey, Signature, Signer, Verifier,
-    pkcs8::{EncodePublicKey, DecodePublicKey},
+    Signature, Signer, SigningKey, Verifier, VerifyingKey,
+    pkcs8::{DecodePublicKey, EncodePublicKey},
 };
-use base64::{engine::general_purpose, Engine};
 use std::convert::TryInto;
 
 use crate::open_setting;
 
-pub fn certification(signature: String, private_key: String, public_key: String, pc_code: String) -> Result<(), i32> {
+pub fn certification(
+    signature: String,
+    private_key: String,
+    public_key: String,
+    pc_code: String,
+) -> Result<(), i32> {
     /*
     println!("📨 code（署名対象）: {}", pc_code);
     println!("📨 publickey: {}", public_key);
